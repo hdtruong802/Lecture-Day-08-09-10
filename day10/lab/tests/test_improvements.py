@@ -182,6 +182,18 @@ def test_invalid_doc_quarantined():
     assert q[0]["reason"] == "unknown_doc_id"
 
 
+def test_build_canonical_cleaned_rows_from_docs():
+    from transform.cleaning_rules import build_canonical_cleaned_rows
+
+    rows = build_canonical_cleaned_rows(exported_at="2026-06-10T00:00:00+00:00")
+    assert len(rows) >= 70
+    by_doc = {}
+    for r in rows:
+        by_doc[r["doc_id"]] = by_doc.get(r["doc_id"], 0) + 1
+    assert by_doc.get("it_helpdesk_faq", 0) >= 15
+    assert all(r.get("chunk_id") and r.get("effective_date") for r in rows)
+
+
 def test_collapse_long_repeated_clause():
     from transform.cleaning_rules import _collapse_repeated_tokens
 

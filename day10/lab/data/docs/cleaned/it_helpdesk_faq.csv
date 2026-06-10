@@ -1,0 +1,19 @@
+chunk_id,doc_id,chunk_text,effective_date,exported_at
+it_helpdesk_faq_1_b75f7b4a9496a7d6,it_helpdesk_faq,Quên mật khẩu: truy cập SSO portal hoặc liên hệ Helpdesk ext. 9000. Mật khẩu mới gửi qua email trong vòng 5 phút.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_2_b49d2cb54042efb2,it_helpdesk_faq,Tài khoản bị khóa sau 5 lần đăng nhập sai liên tiếp.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_3_3c627c6614b6a427,it_helpdesk_faq,Mật khẩu phải được thay đổi mỗi 90 ngày. Hệ thống nhắc nhở 7 ngày trước khi hết hạn.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_4_856d808621ba0523,it_helpdesk_faq,Công ty sử dụng Cisco AnyConnect. Download tại https://vpn.company.internal/download.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_5_70402c344c4e95af,it_helpdesk_faq,"Kiểm tra kết nối Internet trước. Nếu vẫn lỗi, tạo ticket P3 với log file VPN đính kèm.",2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_6_bb9a2b5da804c295,it_helpdesk_faq,Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_7_9e0883e0d077d1de,it_helpdesk_faq,Gửi yêu cầu qua Jira project IT-SOFTWARE. Line Manager phải phê duyệt trước khi IT cài đặt.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_8_3c9f5e6882ac45fb,it_helpdesk_faq,IT Procurement team quản lý tất cả license. Nhắc nhở sẽ được gửi 30 ngày trước khi hết hạn.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_9_2d24cb720e0a43b6,it_helpdesk_faq,Laptop mới được cấp trong ngày onboarding đầu tiên. Liên hệ HR hoặc IT Admin nếu có vấn đề.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_10_9c00964f3937061d,it_helpdesk_faq,Tạo ticket P2 hoặc P3 tùy mức độ nghiêm trọng. Mang thiết bị đến IT Room (tầng 3) để kiểm tra.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_11_41b83dfb7c597e96,it_helpdesk_faq,Dung lượng hộp thư tiêu chuẩn là 50GB. Nếu đầy có thể xóa email cũ hoặc yêu cầu tăng dung lượng qua ticket IT-ACCESS.,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_12_f4ddc2b41efa2ec2,it_helpdesk_faq,"Kiểm tra thư mục Spam trước. Nếu vẫn không có, tạo ticket P2 kèm địa chỉ email gửi và thời gian gửi.",2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_13_b514272710dca6c8,it_helpdesk_faq,"Hotline: ext. 9000 (8:00 - 18:00, Thứ 2 - Thứ 6)",2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_14_5c78d8d7656aa8a4,it_helpdesk_faq,Email: helpdesk@company.internal,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_15_338da9e13b6ce277,it_helpdesk_faq,Jira: project IT-SUPPORT,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_16_2e4f5a312c0098c2,it_helpdesk_faq,Slack: #it-helpdesk,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_17_59babe4380293041,it_helpdesk_faq,Emergency (ngoài giờ): ext. 9999,2026-01-20,2026-06-10T10:02:04.845817+00:00
+it_helpdesk_faq_18_8eb8aa4e70e78d08,it_helpdesk_faq,VPN: mỗi tài khoản được kết nối tối đa 2 thiết bị cùng lúc. Phần mềm sử dụng: Cisco AnyConnect.,2026-01-20,2026-06-10T10:02:04.845817+00:00

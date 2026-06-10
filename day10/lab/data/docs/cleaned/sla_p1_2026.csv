@@ -1,0 +1,16 @@
+chunk_id,doc_id,chunk_text,effective_date,exported_at
+sla_p1_2026_1_a3ddee64af3507eb,sla_p1_2026,Ticket P1: Phản hồi ban đầu (first response): 15 phút kể từ khi ticket được tạo.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_2_f1cd087542ca05a9,sla_p1_2026,Ticket P1: Xử lý và khắc phục (resolution): 4 giờ.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_3_0e74f99210adbc5b,sla_p1_2026,Ticket P1: Escalation: Tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_4_a6129d3e60357891,sla_p1_2026,"Ticket P1: Thông báo stakeholder: Ngay khi nhận ticket, update mỗi 30 phút cho đến khi resolve.",2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_5_4c82a6798c281a1f,sla_p1_2026,Ticket P2: Phản hồi ban đầu: 2 giờ.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_6_18b0dbc54db77036,sla_p1_2026,Ticket P2: Xử lý và khắc phục: 1 ngày làm việc.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_7_647929adcb2e9b22,sla_p1_2026,Ticket P2: Escalation: Tự động escalate sau 90 phút không có phản hồi.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_8_dd0c73fa01d6fb4e,sla_p1_2026,Ticket P3: Phản hồi ban đầu: 1 ngày làm việc.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_9_fc7d08041dcadb22,sla_p1_2026,Ticket P3: Xử lý và khắc phục: 5 ngày làm việc.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_10_7dbd4fb96e2785d8,sla_p1_2026,Ticket P4: Phản hồi ban đầu: 3 ngày làm việc.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_11_d1c87311b6e90f27,sla_p1_2026,Ticket P4: Xử lý và khắc phục: Theo sprint cycle (thông thường 2-4 tuần).,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_12_1aca3075df576ba8,sla_p1_2026,Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_13_969768b4eea44c7d,sla_p1_2026,Escalation P1: tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_14_5c20455555b8b98e,sla_p1_2026,Thông báo stakeholder P1: update mỗi 30 phút cho đến khi resolve.,2026-01-15,2026-06-10T10:02:04.845817+00:00
+sla_p1_2026_15_de1584347fadd487,sla_p1_2026,Kênh thông báo sự cố P1: Slack #incident-p1 và email incident@company.internal.,2026-01-15,2026-06-10T10:02:04.845817+00:00
