@@ -1,0 +1,13 @@
+chunk_id,doc_id,chunk_text,effective_date,exported_at
+policy_refund_v4_1_4f85c3010f7c465a,policy_refund_v4,"Sản phẩm bị lỗi do nhà sản xuất, không phải do người dùng.",2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_2_47faa15a860cb59d,policy_refund_v4,Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_3_895c057b17f78c71,policy_refund_v4,Đơn hàng chưa được sử dụng hoặc chưa bị mở seal.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_4_3ba2a7eeef2b329a,policy_refund_v4,"Sản phẩm thuộc danh mục hàng kỹ thuật số (license key, subscription).",2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_5_7ab6923e232697fc,policy_refund_v4,Đơn hàng đã áp dụng mã giảm giá đặc biệt theo chương trình khuyến mãi Flash Sale.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_6_315bc1c04b76f3b2,policy_refund_v4,Sản phẩm đã được kích hoạt hoặc đăng ký tài khoản.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_7_b1d8186d89bc5cce,policy_refund_v4,"Bước 1: Khách hàng gửi yêu cầu qua hệ thống ticket nội bộ với category ""Refund Request"".",2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_8_98bf3b0938dab385,policy_refund_v4,Bước 2: CS Agent xem xét trong vòng 1 ngày làm việc và xác nhận điều kiện đủ điều kiện.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_9_feba980128065883,policy_refund_v4,"Bước 3: Nếu đủ điều kiện, chuyển yêu cầu sang Finance Team để xử lý hoàn tiền.",2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_10_e2b82458bf92bbef,policy_refund_v4,Bước 4: Finance Team xử lý trong 3-5 ngày làm việc và thông báo kết quả cho khách hàng.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_11_b24c167ac5d5f3b4,policy_refund_v4,Hoàn tiền qua phương thức thanh toán gốc: áp dụng trong 100% trường hợp đủ điều kiện.,2026-02-01,2026-06-10T10:02:04.845817+00:00
+policy_refund_v4_12_f2b0d19d1b7a66de,policy_refund_v4,Hoàn tiền qua credit nội bộ (store credit): khách hàng có thể chọn nhận store credit thay thế với giá trị 110% so với số tiền hoàn.,2026-02-01,2026-06-10T10:02:04.845817+00:00

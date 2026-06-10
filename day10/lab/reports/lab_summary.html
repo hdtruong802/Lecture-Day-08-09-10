@@ -270,11 +270,12 @@
         <strong>Hoàng Đức Trường</strong> · MSV: 2A202600552 · Ngày: 2026-06-10
       </p>
       <div class="badges">
-        <span class="badge">Điểm tự chấm <strong>10/10</strong></span>
-        <span class="badge">Kiểm thử Eval <strong>21/21</strong></span>
-        <span class="badge">Độ chính xác Top-1 <strong>21/21</strong></span>
-        <span class="badge">Dòng CSV Gốc <strong>247</strong></span>
-        <span class="badge">Dòng đã làm sạch <strong>89</strong></span>
+        <!-- <span class="badge">Điểm tự chấm <strong>10/10</strong></span> -->
+        <span class="badge">Eval test <strong>21/21</strong></span>
+        <span class="badge">Top-1 accuracy <strong>21/21</strong></span>
+        <span class="badge">Raw CSV rows <strong>247</strong></span>
+        <span class="badge">Cleaned rows <strong>89</strong></span>
+        <span class="badge">Quarantine rows <strong>213</strong></span>
       </div>
     </header>
 
@@ -290,6 +291,8 @@
       <div class="flow">
         <span>① Nạp dữ liệu (247)</span>
         <span class="arrow">→</span>
+        <span>①b Tài liệu .txt → chunk</span>
+        <span class="arrow">→</span>
         <span>② Làm sạch & Cách ly</span>
         <span class="arrow">→</span>
         <span>③ Kiểm định Chất lượng</span>
@@ -303,6 +306,7 @@
         <div class="stat"><div class="num">89</div><div class="lbl">Phân mảnh chuẩn (Index)</div></div>
         <div class="stat"><div class="num">213</div><div class="lbl">Dòng bị cách ly (Quarantine)</div></div>
         <div class="stat"><div class="num">~20s</div><div class="lbl">Thời gian chạy Pipeline</div></div>
+        <div class="stat"><div class="num">77</div><div class="lbl">Chunk từ .txt gốc (tham chiếu)</div></div>
       </div>
 
       <h3 style="margin-top:22px">Chi tiết từng bước trong luồng xử lý</h3>
@@ -325,6 +329,91 @@
           <div class="box span-full"><strong>Tầm quan trọng</strong>
             Mọi rủi ro trong quá trình truy xuất (Bước 4) đều xuất phát từ dữ liệu gốc này. Cần có <code>run_id</code> và mốc thời gian để truy vết toàn bộ vòng đời dữ liệu: <strong>Từ dòng gốc (raw) → Sinh mã phân mảnh (cleaned chunk_id) → Lưu Chroma ID → Đánh giá top1_chunk_id</strong> phục vụ cho việc gỡ lỗi (debug) và chấm điểm.
           </div>
+        </div>
+      </div>
+
+      <div class="step-card" style="border-left-color: #a78bfa;">
+        <h3>Bước 1b · Chuẩn hóa tài liệu gốc (.txt) → phân mảnh (chunk) CSV</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            5 file văn bản chuẩn trong <code>data/docs/</code>:
+            <code>policy_refund_v4.txt</code>, <code>sla_p1_2026.txt</code>, <code>it_helpdesk_faq.txt</code>,
+            <code>hr_leave_policy.txt</code>, <code>access_control_sop.txt</code>.
+            Danh mục nguồn khai báo tại <code>contracts/data_contract.yaml</code> → <code>canonical_sources</code>.
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Thư mục <code>data/docs/cleaned/</code>:
+            <code>canonical_all.csv</code> (<strong>77 chunk</strong> gộp 5 doc) và 5 file riêng
+            (<code>policy_refund_v4.csv</code> 12, <code>sla_p1_2026.csv</code> 15, <code>it_helpdesk_faq.csv</code> 18,
+            <code>hr_leave_policy.csv</code> 20, <code>access_control_sop.csv</code> 12).
+            Cùng schema với <code>cleaned_lab-final.csv</code>.
+          </div>
+          <div class="box span-full"><strong>5 file .txt → chunk như thế nào?</strong>
+            Mỗi file dùng <strong>một kiểu parser</strong> trong <code>transform/cleaning_rules.py</code>.
+            Một chunk = một câu/fact đủ dài (≥ 8 ký tự), gán <code>doc_id</code> cố định và <code>effective_date</code> lấy từ dòng <code>Effective Date:</code> trong file (nếu không đổi thì mặc định <code>2026-01-01</code>).
+            <table style="margin-top:10px">
+              <thead>
+                <tr><th>File</th><th>Cấu trúc .txt</th><th>Quy tắc tách chunk</th><th>Ví dụ <code>chunk_text</code> sau tách</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>policy_refund_v4.txt</code><br /><span class="muted">12 chunk</span></td>
+                  <td>Điều khoản có bullet <code>- …</code> và quy trình <code>Bước 1:</code>…<code>4:</code></td>
+                  <td>Mỗi dòng <code>- …</code> hoặc <code>Bước N:</code> → 1 chunk; bỏ qua tiêu đề <code>=== Điều … ===</code></td>
+                  <td><code>Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng.</code></td>
+                </tr>
+                <tr>
+                  <td><code>sla_p1_2026.txt</code><br /><span class="muted">15 chunk</span></td>
+                  <td>Section theo <code>Ticket P1</code>…<code>P4</code>, bullet SLA từng mức</td>
+                  <td>Đọc tier hiện tại (P1–P4), mỗi <code>- …</code> được prefix <code>Ticket P1:</code> (hoặc P2…) rồi thành chunk; thêm chunk composite (escalation 10 phút, stakeholder 30 phút…)</td>
+                  <td><code>Escalation P1: tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.</code></td>
+                </tr>
+                <tr>
+                  <td><code>it_helpdesk_faq.txt</code><br /><span class="muted">18 chunk</span></td>
+                  <td>Định dạng FAQ <code>Q:</code> / <code>A:</code>, không có bullet</td>
+                  <td>Parser riêng <code>_load_canonical_faq_chunks</code>: mỗi dòng <code>A: …</code> → 1 chunk (rút gọn câu trả lời chuẩn); dòng Hotline/Email/Slack → chunk liên hệ; thêm chunk gộp VPN + Cisco AnyConnect</td>
+                  <td><code>VPN: mỗi tài khoản được kết nối tối đa 2 thiết bị cùng lúc. Phần mềm sử dụng: Cisco AnyConnect.</code></td>
+                </tr>
+                <tr>
+                  <td><code>hr_leave_policy.txt</code><br /><span class="muted">20 chunk</span></td>
+                  <td>Phần 1–4: bullet phép năm/ốm/thai sản + <code>Bước …</code> quy trình xin phép</td>
+                  <td>Giống parser bullet: mỗi <code>- …</code> hoặc <code>Bước N:</code> → 1 chunk; <strong>loại</strong> chunk chứa “10 ngày phép năm” (HR 2025) và bản có <code>effective_date</code> trước cutoff 2026</td>
+                  <td><code>Số ngày: 12 ngày/năm cho nhân viên dưới 3 năm kinh nghiệm.</code></td>
+                </tr>
+                <tr>
+                  <td><code>access_control_sop.txt</code><br /><span class="muted">12 chunk</span></td>
+                  <td>Mỗi cấp quyền bắt đầu <code>Level N —</code> (tiêu đề + vài dòng mô tả)</td>
+                  <td>Gom toàn bộ dòng thuộc một Level thành <strong>một</strong> chunk (ghép nối bằng khoảng trắng), không tách từng bullet lẻ</td>
+                  <td><code>Level 4 — Admin Access: … Phê duyệt: IT Manager + CISO. Thời gian xử lý: 5 ngày làm việc. …</code></td>
+                </tr>
+              </tbody>
+            </table>
+            Sau khi tách: gán <code>chunk_id = {doc_id}_{thứ_tự}_{hash}</code>, ghi ra CSV 5 cột giống <code>cleaned_lab-final.csv</code>.
+          </div>
+          <div class="box"><strong>Thao tác thực hiện (Làm như thế nào)</strong>
+            <strong>Trong pipeline (Bước 2):</strong> <code>_merge_canonical_from_contract()</code> gọi parser tương ứng từng file, merge chunk chưa có trong pool cleaned (dedupe theo <code>doc_id|text</code>).<br />
+            <strong>Xuất file tham chiếu:</strong> <code>python export_canonical_docs.py</code> → <code>build_canonical_cleaned_rows()</code> → <code>data/docs/cleaned/*.csv</code>.
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Export CSV bẩn <strong>thiếu fact</strong> quan trọng (escalation P1 10 phút, VPN 2 thiết bị, Level 4 CISO…)
+            dù đã loại nhiễu — grading <code>gq_d10_06/08/10</code> sẽ fail.
+            Tài liệu .txt là <strong>nguồn chân lý (source of truth)</strong> bù gap so với snapshot export lỗi.
+          </div>
+          <div class="box span-full"><strong>Tại sao phải làm như vậy</strong>
+            CSV raw mô phỏng sync đa hệ thống (nhiễu + thiếu); .txt mô phỏng bản policy/FAQ đã biên tập đúng.
+            Tách bước parse .txt giúp: (1) audit được fact chuẩn trước khi merge;
+            (2) tái sử dụng cùng logic cho pipeline và file <code>data/docs/cleaned/</code>;
+            (3) tránh embed thẳng .txt — luôn qua schema cleaned + expectation.<br />
+            <strong>Lưu ý:</strong> 77 chunk (.txt thuần) ≠ 89 chunk (<code>cleaned_lab-final</code>) —
+            pipeline = chunk từ raw đã clean <em>cộng</em> canonical merge + dedupe; file <code>data/docs/cleaned/</code>
+            chỉ phản ánh nguồn .txt, <strong>không thay thế</strong> chạy <code>etl_pipeline.py run</code>.
+          </div>
+        </div>
+        <div class="example-box">
+          <strong>Ví dụ · Ba kiểu tách khác nhau</strong>
+          <strong>Refund (bullet):</strong> <code>- Yêu cầu được gửi trong vòng 7 ngày làm việc…</code> → 1 chunk.<br />
+          <strong>FAQ (Q/A):</strong> <code>A: Tài khoản bị khóa sau 5 lần…</code> → rút gọn thành chunk lockout 5 lần.<br />
+          <strong>Access (Level):</strong> 4 dòng dưới <code>Level 4 — Admin Access:</code> → gộp thành <strong>một</strong> chunk Level 4 (IT Manager + CISO).
         </div>
       </div>
 
@@ -428,7 +517,7 @@
           <tr><td>Tiền tố "Nội dung không rõ ràng"</td><td>14</td><td>35, 55, 56, 141</td><td class="before">Làm giảm độ tương đồng ngữ nghĩa của Vector; che lấp các thông tin đúng.</td></tr>
           <tr><td>Ký tự rác (Marker <code>!!!</code>)</td><td>4</td><td>56, 87, 90, 94</td><td class="before">Mô hình học sai từ vựng, giao diện hiển thị cho người dùng không chuyên nghiệp.</td></tr>
           <tr><td>Phân mảnh rỗng hoặc chỉ có khoảng trắng</td><td>20</td><td>27, 28, 118, 130, 216</td><td class="before">Tạo ra các Vector rỗng làm loãng không gian tìm kiếm của hệ thống.</td></tr>
-          <tr><td>Văn bản bị lặp từ hoặc lặp đoạn</td><td>5</td><td>18, 25, 36, 109</td><td class="before">Các bản sao rác chiếm dụng vị trí top kết quả, đẩy thông tin chính xác xuống dưới.</td></tr>
+          <tr><td>Văn bản bị lặp từ hoặc lặp đoạn</td><td>5</td><td>18, 25, 36, 109, 205</td><td class="before">Các bản sao rác chiếm dụng vị trí top kết quả, đẩy thông tin chính xác xuống dưới.</td></tr>
           <tr><td>Thông số SLA P2 (90 phút)</td><td>1</td><td>230</td><td class="before">Bị ưu tiên hiển thị nhầm lẫn khi người dùng truy vấn sự cố cấp độ P1 (10 phút).</td></tr>
           <tr><td>Tài liệu ngoài phạm vi cho phép</td><td>47</td><td>7, 12, 30</td><td class="before">Nhiễu loạn toàn bộ cơ sở dữ liệu nếu không được cô lập (quarantine) kịp thời.</td></tr>
         </tbody>
@@ -634,6 +723,8 @@
           <tr><td>Kết quả Chấm điểm tự động</td><td><code>artifacts/eval/grading_run.jsonl</code></td></tr>
           <tr><td>Bộ dữ liệu đã được làm sạch (Cleaned Corpus)</td><td><code>artifacts/cleaned/cleaned_lab-final.csv</code></td></tr>
           <tr><td>Bộ dữ liệu bị cách ly (Dùng để đối chiếu lỗi)</td><td><code>artifacts/quarantine/quarantine_lab-final.csv</code></td></tr>
+          <tr><td>Chunk chuẩn từ tài liệu .txt (tham chiếu / audit)</td><td><code>data/docs/cleaned/canonical_all.csv</code></td></tr>
+          <tr><td>Chunk theo từng doc .txt</td><td><code>data/docs/cleaned/{doc_id}.csv</code></td></tr>
         </tbody>
       </table>
     </section>
@@ -649,13 +740,18 @@
 pip install -r requirements.txt
 copy .env.example .env          # Trên macOS/Linux sử dụng lệnh: cp .env.example .env</div>
 
-      <h3>Bước 2 — Khởi chạy Luồng xử lý &amp; Đánh giá</h3>
+      <h3>Bước 2 — (Tuỳ chọn) Xuất chunk từ tài liệu .txt gốc</h3>
+      <div class="evidence" style="white-space: pre-wrap;">python export_canonical_docs.py
+# Output: data/docs/cleaned/canonical_all.csv (77 chunk)</div>
+      <p class="muted" style="margin-top:8px">Chỉ cần chạy lại khi sửa file trong <code>data/docs/*.txt</code>. Pipeline vẫn merge canonical tự động ở Bước 2.</p>
+
+      <h3>Bước 3 — Khởi chạy Luồng xử lý &amp; Đánh giá</h3>
       <div class="evidence" style="white-space: pre-wrap;">python etl_pipeline.py run --run-id lab-final
 python eval_retrieval.py --out artifacts/eval/after_fix_eval.csv
 python grading_run.py --out artifacts/eval/grading_run.jsonl
 python pre_submit_check.py --run-id lab-final</div>
 
-      <h3>Bước 3 — Tiêu chí nghiệm thu kỳ vọng</h3>
+      <h3>Bước 4 — Tiêu chí nghiệm thu kỳ vọng</h3>
       <table>
         <thead><tr><th>Hạng mục kiểm tra</th><th>Đạt (Pass) khi</th></tr></thead>
         <tbody>

@@ -1,0 +1,21 @@
+chunk_id,doc_id,chunk_text,effective_date,exported_at
+hr_leave_policy_1_aa6723f058c0081f,hr_leave_policy,Số ngày: 12 ngày/năm cho nhân viên dưới 3 năm kinh nghiệm.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_2_d093b80facf34d4b,hr_leave_policy,Số ngày: 15 ngày/năm cho nhân viên từ 3-5 năm kinh nghiệm.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_3_f8c02a074646e1f4,hr_leave_policy,Số ngày: 18 ngày/năm cho nhân viên trên 5 năm kinh nghiệm.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_4_a0bfa5cd6513de17,hr_leave_policy,Chuyển năm sau: Tối đa 5 ngày phép năm chưa dùng được chuyển sang năm tiếp theo.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_5_2a97d166f6bc6713,hr_leave_policy,Số ngày: 10 ngày/năm có trả lương.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_6_87994d893fed349c,hr_leave_policy,Yêu cầu: Thông báo cho Line Manager trước 9:00 sáng ngày nghỉ.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_7_0c1d829466c4fe88,hr_leave_policy,Nếu nghỉ trên 3 ngày liên tiếp: Cần giấy tờ y tế từ bệnh viện.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_8_d4d875228e0494e1,hr_leave_policy,Nghỉ sinh con: 6 tháng theo quy định Luật Lao động.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_9_5e53312272afe837,hr_leave_policy,Nghỉ nuôi con nhỏ: 1 tiếng/ngày trong 12 tháng đầu sau sinh.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_10_6094b8077a7affb1,hr_leave_policy,Bước 1: Nhân viên gửi yêu cầu nghỉ phép qua hệ thống HR Portal (https://hr.company.internal) ít nhất 3 ngày làm việc trước ngày nghỉ.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_11_3fa47b22e43fd691,hr_leave_policy,Bước 2: Line Manager phê duyệt hoặc từ chối trong vòng 1 ngày làm việc.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_12_1fc41f694acaf94b,hr_leave_policy,Bước 3: Nhân viên nhận thông báo qua email sau khi được phê duyệt.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_13_5ef9fc1cfa4701db,hr_leave_policy,Ngày thường: 150% lương giờ tiêu chuẩn.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_14_764ed1088de0138b,hr_leave_policy,Ngày cuối tuần: 200% lương giờ tiêu chuẩn.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_15_469a1024b89b5d51,hr_leave_policy,Ngày lễ: 300% lương giờ tiêu chuẩn.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_16_b23fd8ba1eb70d79,hr_leave_policy,Nhân viên sau probation period có thể làm remote tối đa 2 ngày/tuần.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_17_20a1e3a7117853b3,hr_leave_policy,Team Lead phải phê duyệt lịch remote qua HR Portal.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_18_26cd18180cebbc5d,hr_leave_policy,Ngày onsite bắt buộc: Thứ 3 và Thứ 5 theo lịch team.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_19_8ab9f2d5e21b591f,hr_leave_policy,Kết nối VPN bắt buộc khi làm việc với hệ thống nội bộ.,2026-01-01,2026-06-10T10:02:04.845817+00:00
+hr_leave_policy_20_b14d7804c03c7e14,hr_leave_policy,Camera bật trong các cuộc họp team.,2026-01-01,2026-06-10T10:02:04.845817+00:00

@@ -11,7 +11,8 @@ import os
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import yaml
 
@@ -242,10 +243,72 @@ def _load_canonical_bullet_chunks(path: Path) -> List[Tuple[str, str]]:
     return chunks
 
 
+def _load_canonical_faq_chunks(path: Path) -> List[Tuple[str, str]]:
+    """Parser IT Helpdesk FAQ (định dạng Q: / A:)."""
+    if not path.is_file():
+        return []
+    effective = "2026-01-01"
+    chunks: List[Tuple[str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if s.startswith("Effective Date:"):
+            effective = s.split(":", 1)[1].strip()
+            continue
+        if s.startswith("===") or not s or s.startswith("Q:"):
+            continue
+        if s.startswith("A: "):
+            fact = s[3:].strip()
+            if "Tài khoản bị khóa sau 5 lần" in fact:
+                fact = "Tài khoản bị khóa sau 5 lần đăng nhập sai liên tiếp."
+            elif fact.startswith("Truy cập https://sso"):
+                fact = (
+                    "Quên mật khẩu: truy cập SSO portal hoặc liên hệ Helpdesk ext. 9000. "
+                    "Mật khẩu mới gửi qua email trong vòng 5 phút."
+                )
+            elif "Mật khẩu phải được thay đổi mỗi 90 ngày" in fact:
+                fact = (
+                    "Mật khẩu phải được thay đổi mỗi 90 ngày. "
+                    "Hệ thống nhắc nhở 7 ngày trước khi hết hạn."
+                )
+            elif "Mỗi tài khoản được kết nối VPN" in fact:
+                fact = "Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc."
+            elif fact.startswith("Laptop được cấp trong ngày onboarding"):
+                fact = (
+                    "Laptop mới được cấp trong ngày onboarding đầu tiên. "
+                    "Liên hệ HR hoặc IT Admin nếu có vấn đề."
+                )
+            elif "Dung lượng tiêu chuẩn là 50GB" in fact:
+                fact = (
+                    "Dung lượng hộp thư tiêu chuẩn là 50GB. "
+                    "Nếu đầy có thể xóa email cũ hoặc yêu cầu tăng dung lượng qua ticket IT-ACCESS."
+                )
+            if len(fact) >= 8:
+                chunks.append((fact, effective))
+            continue
+        if s.startswith(("Hotline:", "Email:", "Jira:", "Slack:", "Emergency")) and len(s) >= 8:
+            chunks.append((s, effective))
+
+    composites = [
+        (
+            "VPN: mỗi tài khoản được kết nối tối đa 2 thiết bị cùng lúc. "
+            "Phần mềm sử dụng: Cisco AnyConnect.",
+            effective,
+        ),
+    ]
+    seen = {_norm_text(c[0]) for c in chunks}
+    for text, eff in composites:
+        if _norm_text(text) not in seen:
+            chunks.append((text, eff))
+            seen.add(_norm_text(text))
+    return chunks
+
+
 def _load_canonical_for_doc(doc_id: str, rel_path: str) -> List[Tuple[str, str]]:
     path = DOCS_ROOT / rel_path
     if doc_id == "sla_p1_2026":
         return _load_canonical_sla_chunks()
+    if doc_id == "it_helpdesk_faq":
+        return _load_canonical_faq_chunks(path)
     return _load_canonical_bullet_chunks(path)
 
 
@@ -435,6 +498,55 @@ def clean_rows(
     _reassign_chunk_ids(cleaned)
 
     return cleaned, quarantine
+
+
+def _canonical_sources_from_contract() -> List[Tuple[str, str]]:
+    """Trả về [(doc_id, rel_path), ...] từ data_contract.yaml."""
+    contract_path = DOCS_ROOT / "contracts" / "data_contract.yaml"
+    out: List[Tuple[str, str]] = []
+    if not contract_path.is_file():
+        out.append(("sla_p1_2026", "data/docs/sla_p1_2026.txt"))
+        return out
+    try:
+        data = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return out
+    for src in data.get("canonical_sources") or []:
+        doc_id = str(src.get("doc_id") or "").strip()
+        rel = str(src.get("path") or "").strip()
+        if doc_id in ALLOWED_DOC_IDS and rel:
+            out.append((doc_id, rel))
+    return out
+
+
+def build_canonical_cleaned_rows(
+    *,
+    exported_at: Optional[str] = None,
+    doc_ids: Optional[Sequence[str]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Chuyển các file .txt trong data/docs/ thành dòng cleaned (chunk_id, doc_id, …).
+    Dùng cùng parser với bước merge canonical trong pipeline.
+    """
+    fb = (exported_at or "").strip() or datetime.now(timezone.utc).isoformat()
+    hr_cutoff = _load_hr_cutoff()
+    want = frozenset(doc_ids) if doc_ids else None
+    cleaned: List[Dict[str, Any]] = []
+    seen_text: set[str] = set()
+    for doc_id, rel in _canonical_sources_from_contract():
+        if want is not None and doc_id not in want:
+            continue
+        _merge_canonical_chunks(
+            cleaned,
+            seen_text,
+            doc_id=doc_id,
+            canonical=_load_canonical_for_doc(doc_id, rel),
+            exported_at=fb,
+            hr_cutoff=hr_cutoff,
+        )
+    _finalize_cleaned_exported_at(cleaned, fb)
+    _reassign_chunk_ids(cleaned)
+    return cleaned
 
 
 def write_cleaned_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
