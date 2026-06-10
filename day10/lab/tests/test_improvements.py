@@ -139,3 +139,52 @@ def test_resolve_fresh_snapshot_not_aligned():
     )
     assert meta["aligned"] is False
     assert effective == source
+
+
+def test_refund_fix_regex_variants():
+    from transform.cleaning_rules import _apply_refund_window_fix_text
+
+    assert "7 ngày làm việc" in _apply_refund_window_fix_text("Hoàn trong 14 ngày")
+    assert "7 ngày làm việc" in _apply_refund_window_fix_text("14 ngày làm việc kể từ")
+
+
+def test_access_control_level4_canonical():
+    cleaned, _ = clean_rows([])
+    ac = [r for r in cleaned if r["doc_id"] == "access_control_sop"]
+    blob = " ".join(r["chunk_text"] for r in ac)
+    assert "Level 4" in blob and "CISO" in blob
+
+
+def test_whitespace_chunk_quarantined():
+    rows = [
+        {
+            "doc_id": "it_helpdesk_faq",
+            "chunk_text": "   ",
+            "effective_date": "2026-01-01",
+            "exported_at": "2026-04-01T00:00:00",
+        },
+    ]
+    cleaned, q = clean_rows(rows)
+    assert sum(1 for x in q if x.get("reason") == "missing_chunk_text") == 1
+    assert all((r.get("chunk_text") or "").strip() for r in cleaned)
+
+
+def test_invalid_doc_quarantined():
+    rows = [
+        {
+            "doc_id": "invalid_doc_xzyxyx",
+            "chunk_text": "Ticket P1 có SLA phản hồi ban đầu 15 phút.",
+            "effective_date": "2025-03-01",
+            "exported_at": "2026-04-03T00:00:00",
+        },
+    ]
+    _, q = clean_rows(rows)
+    assert q[0]["reason"] == "unknown_doc_id"
+
+
+def test_collapse_long_repeated_clause():
+    from transform.cleaning_rules import _collapse_repeated_tokens
+
+    text = "Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. " * 3
+    out = _collapse_repeated_tokens(text)
+    assert out.count("Yêu cầu được gửi") == 1
