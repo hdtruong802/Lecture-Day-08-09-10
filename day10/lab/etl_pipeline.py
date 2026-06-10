@@ -279,6 +279,7 @@ def cmd_embed_internal(cleaned_csv: Path, *, run_id: str, log) -> bool:
         retrieval_meta = chunk_retrieval_metadata(r.get("doc_id", ""), chunk_text)
         documents.append(build_embed_document(chunk_text, retrieval_meta))
         meta = {
+            "chunk_id": r.get("chunk_id", ""),
             "doc_id": r.get("doc_id", ""),
             "effective_date": r.get("effective_date", ""),
             "run_id": run_id,

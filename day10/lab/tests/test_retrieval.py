@@ -52,12 +52,13 @@ def test_metadata_rerank_p1_escalation_beats_p2():
     assert hints.priority_tier == "P1"
     assert hints.sla_topic == "escalation"
 
-    ranked_docs, ranked_metas = rerank_hits(
+    _docs, ranked_metas, _ids = rerank_hits(
         docs,
         metas,
         must_any=["10 phút"],
         want_top1="sla_p1_2026",
         question=question,
+        ids=["p2", "p1"],
     )
     assert ranked_metas[0]["priority_tier"] == "P1"
     assert "10 phút" in ranked_metas[0]["chunk_text"]
@@ -75,11 +76,12 @@ def test_vector_order_wrong_metadata_rerank_fixes():
             "sla_topic": "escalation",
         },
     ]
-    ranked_docs, ranked_metas = rerank_hits(
+    _docs, ranked_metas, _ids = rerank_hits(
         docs,
         metas,
         must_any=["10 phút"],
         want_top1="sla_p1_2026",
         question="ticket P1 auto escalate?",
+        ids=["c2", "c1"],
     )
     assert ranked_metas[0]["priority_tier"] == "P1"

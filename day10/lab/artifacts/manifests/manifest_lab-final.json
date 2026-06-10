@@ -1,60 +1,60 @@
 {
   "run_id": "lab-final",
-  "run_timestamp": "2026-06-10T06:09:14.597957+00:00",
-  "ingest_started_at": "2026-06-10T06:08:54.858880+00:00",
+  "run_timestamp": "2026-06-10T09:05:26.404753+00:00",
+  "ingest_started_at": "2026-06-10T09:05:06.081553+00:00",
   "source_latest_exported_at": "2026-04-11T00:00:00",
-  "ingest_latest_exported_at": "2026-06-10T06:08:54.858880+00:00",
-  "freshness_effective_ingest_at": "2026-06-10T06:08:54.858880+00:00",
+  "ingest_latest_exported_at": "2026-06-10T09:05:06.081553+00:00",
+  "freshness_effective_ingest_at": "2026-06-10T09:05:06.081553+00:00",
   "freshness_align": {
     "source_timestamp": "2026-04-11T00:00:00",
-    "reference_timestamp": "2026-06-10T06:08:54.858880+00:00",
+    "reference_timestamp": "2026-06-10T09:05:06.081553+00:00",
     "aligned": true,
-    "sla_hours": 720.0,
-    "source_age_hours": 1446.149,
+    "sla_hours": 24.0,
+    "source_age_hours": 1449.085,
     "reason": "source_snapshot_stale_aligned_to_reference",
-    "effective_timestamp": "2026-06-10T06:08:54.858880+00:00"
+    "effective_timestamp": "2026-06-10T09:05:06.081553+00:00"
   },
-  "publish_timestamp": "2026-06-10T06:09:14.597957+00:00",
+  "publish_timestamp": "2026-06-10T09:05:26.404753+00:00",
   "raw_path": "data\\raw\\policy_export_dirty.csv",
   "raw_records": 247,
-  "cleaned_records": 86,
-  "quarantine_records": 212,
+  "cleaned_records": 89,
+  "quarantine_records": 213,
   "quarantine_reason_counts": {
     "unknown_doc_id": 109,
     "stale_hr_content_10d_annual": 8,
-    "duplicate_chunk_text": 59,
+    "duplicate_chunk_text": 60,
     "missing_chunk_text": 8,
     "stale_hr_policy_effective_date": 22,
     "missing_effective_date": 6
   },
-  "latest_exported_at": "2026-06-10T06:09:14.597957+00:00",
-  "freshness_data_sla_hours": 720.0,
+  "latest_exported_at": "2026-06-10T09:05:26.404753+00:00",
+  "freshness_data_sla_hours": 24.0,
   "freshness_pipeline_sla_hours": 2.0,
   "pydantic_validate": {
-    "rows": 86,
+    "rows": 89,
     "errors": 0
   },
   "freshness_boundaries": {
     "data_ingest": {
       "status": "PASS",
       "boundary": "data_ingest",
-      "timestamp": "2026-06-10T06:08:54.858880+00:00",
-      "age_hours": 0.005,
-      "sla_hours": 720.0
+      "timestamp": "2026-06-10T09:05:06.081553+00:00",
+      "age_hours": 0.006,
+      "sla_hours": 24.0
     },
     "data_publish": {
       "status": "PASS",
       "boundary": "data_publish",
-      "timestamp": "2026-06-10T06:09:14.597957+00:00",
+      "timestamp": "2026-06-10T09:05:26.404753+00:00",
       "age_hours": 0.0,
-      "sla_hours": 720.0
+      "sla_hours": 24.0
     },
     "pipeline_latency": {
       "status": "PASS",
       "boundary": "pipeline_latency",
-      "ingest_started_at": "2026-06-10T06:08:54.858880+00:00",
-      "publish_timestamp": "2026-06-10T06:09:14.597957+00:00",
-      "latency_hours": 0.0055,
+      "ingest_started_at": "2026-06-10T09:05:06.081553+00:00",
+      "publish_timestamp": "2026-06-10T09:05:26.404753+00:00",
+      "latency_hours": 0.0056,
       "sla_hours": 2.0
     }
   },

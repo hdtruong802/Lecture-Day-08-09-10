@@ -91,16 +91,22 @@ def rerank_hits(
     question: str = "",
     enable_metadata: bool = True,
     metadata_only: bool = False,
-) -> Tuple[List[str], List[Dict[str, Any]]]:
+    ids: List[str] | None = None,
+) -> Tuple[List[str], List[Dict[str, Any]], List[str]]:
     if not docs:
-        return docs, metas
+        return docs, metas, list(ids or [])
+
+    if ids is None:
+        ids = [""] * len(docs)
+    elif len(ids) < len(docs):
+        ids = list(ids) + [""] * (len(docs) - len(ids))
 
     hints = infer_query_hints(question) if enable_metadata else QueryHints()
     must_lower = [x.lower() for x in must_any]
-    pairs = list(zip(docs, metas))
+    triples = list(zip(docs, metas, ids))
 
-    def sort_key(item: Tuple[str, Dict[str, Any]], rank: int) -> float:
-        doc, meta = item
+    def sort_key(item: Tuple[str, Dict[str, Any], str], rank: int) -> float:
+        doc, meta, _cid = item
         return score_hit(
             doc,
             meta or {},
@@ -111,10 +117,11 @@ def rerank_hits(
             metadata_only=metadata_only,
         )
 
-    ranked = sorted(enumerate(pairs), key=lambda t: sort_key(t[1], t[0]), reverse=True)
+    ranked = sorted(enumerate(triples), key=lambda t: sort_key(t[1], t[0]), reverse=True)
     out_docs = [p[1][0] for p in ranked]
     out_metas = [p[1][1] for p in ranked]
-    return out_docs, out_metas
+    out_ids = [p[1][2] for p in ranked]
+    return out_docs, out_metas, out_ids
 
 
 def hits_display_texts(docs: List[str], metas: List[Dict[str, Any]]) -> List[str]:

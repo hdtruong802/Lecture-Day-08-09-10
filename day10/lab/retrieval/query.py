@@ -1,8 +1,11 @@
-"""Chroma query helpers — doc-scoped retrieval khi biết expect_top1_doc_id."""
+"""Chroma query helpers — doc-scoped retrieval."""
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 def query_retrieval_pool(
@@ -11,15 +14,11 @@ def query_retrieval_pool(
     *,
     pool_k: int,
     focus_doc_id: str = "",
-) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """
-    Lấy pool chunk cho re-rank.
-    Nếu có focus_doc_id: ưu tiên query trong phạm vi doc (metadata filter),
-    tránh embedding thuần kéo chunk doc khác (vd P1 SLA vs HR onboarding).
-    """
+) -> Tuple[List[str], List[Dict[str, Any]], List[str]]:
     pool_k = max(1, pool_k)
     docs: List[str] = []
     metas: List[Dict[str, Any]] = []
+    ids: List[str] = []
 
     if focus_doc_id:
         try:
@@ -30,22 +29,30 @@ def query_retrieval_pool(
             )
             docs = list((scoped.get("documents") or [[]])[0])
             metas = list((scoped.get("metadatas") or [[]])[0])
-        except Exception:
-            docs, metas = [], []
+            ids = list((scoped.get("ids") or [[]])[0])
+        except Exception as exc:
+            logger.warning("scoped query failed doc_id=%s: %s", focus_doc_id, exc)
 
     if len(docs) < pool_k:
-        global_res = col.query(query_texts=[question], n_results=pool_k)
-        g_docs = list((global_res.get("documents") or [[]])[0])
-        g_metas = list((global_res.get("metadatas") or [[]])[0])
-        seen = {str((m or {}).get("chunk_id") or d) for d, m in zip(docs, metas)}
-        for d, m in zip(g_docs, g_metas):
-            key = str((m or {}).get("chunk_id") or d)
+        try:
+            global_res = col.query(query_texts=[question], n_results=pool_k)
+            g_docs = list((global_res.get("documents") or [[]])[0])
+            g_metas = list((global_res.get("metadatas") or [[]])[0])
+            g_ids = list((global_res.get("ids") or [[]])[0])
+        except Exception as exc:
+            logger.warning("global query failed: %s", exc)
+            return docs[:pool_k], metas[:pool_k], ids[:pool_k]
+
+        seen = set(ids)
+        for d, m, cid in zip(g_docs, g_metas, g_ids):
+            key = str(cid or (m or {}).get("chunk_id") or d)
             if key in seen:
                 continue
             docs.append(d)
             metas.append(m)
+            ids.append(str(cid or ""))
             seen.add(key)
             if len(docs) >= pool_k:
                 break
 
-    return docs[:pool_k], metas[:pool_k]
+    return docs[:pool_k], metas[:pool_k], ids[:pool_k]

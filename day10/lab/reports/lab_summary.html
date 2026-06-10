@@ -179,6 +179,16 @@
       color: #94a3b8;
     }
     .step-card .why em { color: #fbbf24; font-style: normal; font-weight: 600; }
+    .step-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    @media (min-width: 640px) {
+      .step-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .step-grid .span-full { grid-column: 1 / -1; }
+    .step-grid .box strong { color: #60a5fa; }
     .example-box {
       background: rgba(59, 130, 246, 0.08);
       border: 1px solid rgba(59, 130, 246, 0.25);
@@ -255,321 +265,420 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>Lab Day 10 — Data Pipeline & Observability</h1>
+      <h1>Report Lab Day 10</h1>
       <p class="sub">
-        Báo cáo kỹ thuật tổng hợp · Phân tích rủi ro · Tác động hệ thống · Phương án khắc phục<br />
-        <strong>Hoàng Đức Trường</strong> · MSV: 2A202600552 · Date: 2026-06-10
+        <strong>Hoàng Đức Trường</strong> · MSV: 2A202600552 · Ngày: 2026-06-10
       </p>
       <div class="badges">
-        <span class="badge">Grading <strong>10/10</strong></span>
-        <span class="badge">Eval <strong>21/21</strong></span>
-        <span class="badge">Freshness <strong>PASS</strong></span>
-        <span class="badge">Tests <strong>15/15</strong></span>
-        <span class="badge">System Status <strong>STABLE</strong></span>
+        <span class="badge">Điểm tự chấm <strong>10/10</strong></span>
+        <span class="badge">Kiểm thử Eval <strong>21/21</strong></span>
+        <span class="badge">Độ chính xác Top-1 <strong>21/21</strong></span>
+        <span class="badge">Dòng CSV Gốc <strong>247</strong></span>
+        <span class="badge">Dòng đã làm sạch <strong>89</strong></span>
       </div>
     </header>
 
     <section>
-      <h2>1. Tổng quan Luồng xử lý (Data Pipeline)</h2>
+      <h2>1. Tổng quan Luồng xử lý Dữ liệu (Data Pipeline)</h2>
       <p>
-        Dữ liệu thô (CSV) xuất từ 5 hệ thống nội bộ chứa nhiều nhiễu: dữ liệu rác, chính sách nhân sự cũ, thông tin hoàn tiền sai lệch. Pipeline thực hiện quá trình <strong>Làm sạch → Kiểm định chất lượng → Cách ly dữ liệu lỗi → Nhúng (Embed) vào ChromaDB</strong> nhằm đảm bảo tác tử (Agent) có ngữ cảnh chính xác nhất để trả lời.
+        Tệp tin <code>policy_export_dirty.csv</code> mô phỏng một bản xuất dữ liệu (snapshot) từ nhiều hệ thống nội bộ khác nhau. Trong tổng số 247 dòng dữ liệu với 39 mã tài liệu (<code>doc_id</code>) khác biệt, trên thực tế chỉ có <strong>5 tài liệu thuộc cơ sở tri thức (Knowledge Base - KB) chuẩn</strong> mà Agent được phép tham chiếu.
+        Tập dữ liệu này cố ý được đưa vào các thành phần nhiễu (chính sách lỗi thời, tài liệu rác, nội dung trùng lặp, ký tự hỏng). Nếu tiến hành vector hóa (embed) trực tiếp những dữ liệu này, hệ thống truy xuất sẽ trả về thông tin sai lệch, dẫn đến việc Agent cung cấp câu trả lời sai cho người dùng.
+      </p>
+      <p class="muted" style="margin-top:10px">
+        Điểm bắt đầu (Entrypoint): <code>python etl_pipeline.py run --run-id lab-final</code> · Chi tiết từng bước bên dưới giải thích rõ quy trình <strong>Đầu vào → Đầu ra → Thao tác → Vấn đề được giải quyết → Tầm quan trọng</strong>.
       </p>
       <div class="flow">
-        <span>CSV Raw (247)</span>
+        <span>① Nạp dữ liệu (247)</span>
         <span class="arrow">→</span>
-        <span>Clean + Quarantine</span>
+        <span>② Làm sạch & Cách ly</span>
         <span class="arrow">→</span>
-        <span>Expectation + Pydantic</span>
+        <span>③ Kiểm định Chất lượng</span>
         <span class="arrow">→</span>
-        <span>Embed Vector DB</span>
+        <span>④ Vector hóa (ChromaDB)</span>
         <span class="arrow">→</span>
-        <span>Evaluation</span>
+        <span>⑤ Đánh giá Truy xuất</span>
       </div>
       <div class="stats">
-        <div class="stat"><div class="num">247</div><div class="lbl">Dòng Raw</div></div>
-        <div class="stat"><div class="num">86</div><div class="lbl">Phân đoạn (Chunk) sạch</div></div>
-        <div class="stat"><div class="num">212</div><div class="lbl">Cách ly (Quarantine)</div></div>
-        <div class="stat"><div class="num">~20s</div><div class="lbl">Độ trễ Pipeline</div></div>
+        <div class="stat"><div class="num">247</div><div class="lbl">Dòng dữ liệu gốc</div></div>
+        <div class="stat"><div class="num">89</div><div class="lbl">Phân mảnh chuẩn (Index)</div></div>
+        <div class="stat"><div class="num">213</div><div class="lbl">Dòng bị cách ly (Quarantine)</div></div>
+        <div class="stat"><div class="num">~20s</div><div class="lbl">Thời gian chạy Pipeline</div></div>
       </div>
 
-      <h3 style="margin-top:22px">Từng bước xử lý như thế nào? Vì sao làm vậy?</h3>
-      <p class="muted">Đọc theo thứ tự dưới đây khi giải thích cho người khác — mỗi bước có <strong>xử lý</strong> và <strong>lý do</strong>.</p>
+      <h3 style="margin-top:22px">Chi tiết từng bước trong luồng xử lý</h3>
 
       <div class="step-card">
-        <h3>Bước 1 · Ingest CSV raw (247 dòng)</h3>
-        <p><strong>Xử lý:</strong> Đọc <code>policy_export_dirty.csv</code>, ghi <code>run_id</code>, đếm <code>raw_records</code>. Nếu <code>exported_at</code> nguồn quá cũ (&gt; SLA 720h), căn về thời điểm ingest (<code>FRESHNESS_ALIGN_STALE_SNAPSHOT</code>) và lưu <code>source_latest_exported_at</code> để audit.</p>
-        <p class="why"><em>Vì sao:</em> CSV lab mô phỏng export thật từ DB/API — cần điểm bắt đầu có log trace. Căn timestamp tránh monitor báo FAIL giả khi snapshot cũ nhưng pipeline vẫn publish corpus mới.</p>
-      </div>
-
-      <div class="step-card">
-        <h3>Bước 2 · Clean + Quarantine</h3>
-        <p><strong>Xử lý:</strong> Allowlist 5 <code>doc_id</code> hợp lệ; loại <code>invalid_doc_*</code>. Chuẩn hóa ngày, strip prefix “Nội dung không rõ ràng”, gỡ <code>!!!</code>, gộp token lặp. HR cũ (10 ngày phép / ngày hiệu lực &lt; cutoff) → quarantine. Refund “14 ngày” → đổi “7 ngày”. Sort <code>effective_date</code> giảm dần rồi dedupe (giữ bản mới). Merge chunk canonical từ 5 file <code>data/docs/</code>.</p>
-        <p class="why"><em>Vì sao:</em> Không thể embed thẳng — nhiễu sẽ vào vector store vĩnh viễn. Quarantine giữ bản gốc + <code>reason</code> để audit thay vì xóa im lặng. Canonical bù fact thiếu trong export bẩn.</p>
-      </div>
-
-      <div class="step-card">
-        <h3>Bước 3 · Expectation suite + Pydantic</h3>
-        <p><strong>Xử lý:</strong> Chạy E1–E10: halt nếu refund còn 14 ngày, HR còn 10 ngày phép, thiếu access_control, v.v. Pydantic validate schema cleaned (doc_id, chunk_text, ngày…). Lỗi halt → <strong>không embed</strong>.</p>
-        <p class="why"><em>Vì sao:</em> Rule clean có thể sót; expectation là lớp kiểm cuối trước khi dữ liệu ảnh hưởng agent. Halt có kiểm soát = fail fast, tránh index nhiễu.</p>
-      </div>
-
-      <div class="step-card">
-        <h3>Bước 4 · Embed ChromaDB</h3>
-        <p><strong>Xử lý:</strong> Mỗi chunk: prefix <code>[P1|escalation]</code> khi embed, metadata <code>priority_tier</code>, <code>sla_topic</code>, <code>chunk_text</code> gốc. Upsert theo <code>chunk_id</code>; prune id không còn trong run; verify metadata sau upsert.</p>
-        <p class="why"><em>Vì sao:</em> Embedding thuần hay nhầm P1/P2 vì câu tương tự. Prefix + metadata giúp retrieval phân biệt mà không sửa nội dung hiển thị. Prune tránh chunk cũ lẫn top-k.</p>
+        <h3>Bước 1 · Nạp dữ liệu (Ingest) — Đọc bản ghi thô &amp; Gắn mốc thời gian</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            Tệp <code>data/raw/policy_export_dirty.csv</code> (247 dòng) chứa các trường: <code>row_id</code>, <code>doc_id</code>, <code>chunk_text</code>, <code>effective_date</code>, <code>exported_at</code>. Cùng với tham số định danh lần chạy <code>--run-id</code> (ví dụ: <code>lab-final</code>).
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Đưa danh sách các dòng dữ liệu vào bộ nhớ. Ghi nhận log tại <code>artifacts/logs/run_{run_id}.log</code> với các thông số: <code>raw_records=247</code>, <code>ingest_started_at</code>, <code>source_latest_exported_at</code>. Xử lý đồng bộ hóa mốc thời gian (freshness alignment) nếu dữ liệu nguồn quá cũ để tránh lỗi hết hạn giả (false stale).
+          </div>
+          <div class="box"><strong>Thao tác thực hiện</strong>
+            Hàm <code>load_raw_csv()</code> phân tích cú pháp CSV và đếm số lượng bản ghi. Hàm xác định <code>max(exported_at)</code> làm mốc thời gian tham chiếu của nguồn. Hàm <code>resolve_data_snapshot_timestamp()</code> kiểm tra cam kết chất lượng dịch vụ (SLA) của dữ liệu và <code>stamp_rows_exported_at()</code> để đồng bộ thời gian khi cần thiết.
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Giải quyết tình trạng thiếu mốc thời gian khởi đầu chuẩn để kiểm toán (audit). Việc dữ liệu trích xuất từ năm 2025 nhưng chạy pipeline vào năm 2026 dễ bị hệ thống cảnh báo "dữ liệu cũ" (stale) nếu không có cơ chế đối chiếu có kiểm soát.
+          </div>
+          <div class="box span-full"><strong>Tầm quan trọng</strong>
+            Mọi rủi ro trong quá trình truy xuất (Bước 4) đều xuất phát từ dữ liệu gốc này. Cần có <code>run_id</code> và mốc thời gian để truy vết toàn bộ vòng đời dữ liệu: <strong>Từ dòng gốc (raw) → Sinh mã phân mảnh (cleaned chunk_id) → Lưu Chroma ID → Đánh giá top1_chunk_id</strong> phục vụ cho việc gỡ lỗi (debug) và chấm điểm.
+          </div>
+        </div>
       </div>
 
       <div class="step-card">
-        <h3>Bước 5 · Monitoring + Evaluation</h3>
-        <p><strong>Xử lý:</strong> Ghi manifest (số liệu, quarantine breakdown, freshness 3 boundary). Eval: query doc-scope theo <code>expect_top1_doc_id</code> + metadata re-rank. Grading 10 câu chính thức + eval 21 câu mở rộng.</p>
-        <p class="why"><em>Vì sao:</em> Pipeline không chỉ “chạy xong” — cần chứng minh agent trả lời đúng (eval) và vận hành ổn định (freshness, latency). Đây là bằng chứng nộp bài.</p>
+        <h3>Bước 2 · Làm sạch &amp; Cách ly (Clean + Quarantine) — Lọc dữ liệu chuẩn &amp; Loại bỏ nhiễu</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            247 dòng dữ liệu từ Bước 1. Danh sách cho phép (allowlist) gồm 5 mã <code>doc_id</code> chuẩn quy định tại <code>contracts/data_contract.yaml</code>. 5 tệp văn bản gốc (canonical files) trong thư mục <code>data/docs/*.txt</code>.
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Tệp <code>artifacts/cleaned/cleaned_{run_id}.csv</code>: Chứa <strong>89 đoạn dữ liệu chuẩn</strong> sẵn sàng để lập chỉ mục (index), mã định danh <code>chunk_id</code> được đảm bảo tính ổn định.<br />
+            Tệp <code>artifacts/quarantine/quarantine_{run_id}.csv</code>: Chứa <strong>213 dòng</strong> bị loại bỏ kèm theo lý do cụ thể (ví dụ: <code>unknown_doc_id=109</code>, <code>duplicate_chunk_text=60</code>).
+          </div>
+          <div class="box"><strong>Thao tác thực hiện</strong>
+            Cách ly các tài liệu nằm ngoài danh sách cho phép (ví dụ: <code>security_policy</code>). Chuẩn hóa định dạng ngày tháng. Xóa bỏ các tiền tố gây nhiễu (như "Nội dung không rõ ràng") và ký tự thừa (<code>!!!</code>). Gộp các từ/đoạn lặp lại. Cập nhật thông tin chính sách mới nhất (ví dụ: sửa hoàn tiền từ "14 ngày" thành "7 ngày"). Sắp xếp theo ngày hiệu lực để loại bỏ dữ liệu trùng và giữ lại bản mới nhất. Hàm <code>_merge_canonical_from_contract()</code> giúp bổ sung các thông tin còn thiếu từ tệp văn bản gốc.
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Khắc phục 8 nhóm lỗi nhiễu ảnh hưởng đến truy xuất: Xung đột chính sách giữa các phiên bản cũ và mới, nhầm lẫn giữa SLA mức P1 và P2, tài liệu rác chứa nội dung thật, lỗi định dạng văn bản, dữ liệu rỗng hoặc trùng lặp, thiếu hụt thông tin quan trọng trong bản trích xuất.
+          </div>
+          <div class="box span-full"><strong>Tầm quan trọng</strong>
+            Cơ sở dữ liệu Vector <strong>không có khả năng tự sửa lỗi</strong> nội dung sau khi đã lưu trữ. Bất kỳ dữ liệu nhiễu nào bị lọt vào hệ thống sẽ liên tục xuất hiện trong top kết quả tìm kiếm cho đến khi được lập chỉ mục lại. Việc cách ly (thay vì xóa bỏ hoàn toàn) giúp giữ lại bản gốc để kiểm toán sau này.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <h3>Bước 3 · Kiểm định Chất lượng (Expectation Suite &amp; Pydantic) — Chốt chặn trước khi Vector hóa</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            89 dòng dữ liệu sạch từ Bước 2. Bộ quy chuẩn (schema) được định nghĩa trong <code>contracts/data_contract.yaml</code> (yêu cầu cấu trúc: <code>chunk_id</code>, <code>doc_id</code>, <code>chunk_text</code> dài tối thiểu 8 ký tự, <code>effective_date</code> chuẩn ISO).
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Ghi nhận trạng thái <code>OK/FAIL</code> cho từng tiêu chí kiểm định (expectation). Nếu phát hiện lỗi nghiêm trọng (<code>should_halt=True</code>), quy trình sẽ dừng ngay lập tức và <strong>không tiến hành lưu trữ Vector</strong>. Nếu vượt qua kiểm định, chuyển sang Bước 4 (Pydantic xác nhận <code>errors=0</code>).
+          </div>
+          <div class="box"><strong>Thao tác thực hiện</strong>
+            Chạy các quy tắc kiểm tra từ E1 đến E10 trong tệp <code>quality/expectations.py</code>. Cụ thể: Quy tắc E3 đảm bảo không còn tồn tại cụm từ "14 ngày làm việc" trong chính sách hoàn tiền; E6/E8 yêu cầu chính sách nhân sự phải ghi rõ "12 ngày phép năm". Hàm <code>validate_cleaned_rows()</code> dùng Pydantic để thẩm định cấu trúc dữ liệu của từng dòng.
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Phòng ngừa rủi ro các quy tắc làm sạch ở Bước 2 bỏ sót những trường hợp ngoại lệ (ví dụ: lỗi bắt mẫu regex, giữ nhầm bản ghi cũ). Cung cấp một lớp kiểm duyệt độc lập <strong>trước khi</strong> dữ liệu được nạp vào ChromaDB, ngăn Agent học từ những thông tin vi phạm chính sách.
+          </div>
+          <div class="box span-full"><strong>Tầm quan trọng</strong>
+            Việc chạy xong chuỗi xử lý không đồng nghĩa với việc dữ liệu đã hoàn toàn chính xác. Cơ chế Dừng có kiểm soát (Fail fast) giúp tiết kiệm chi phí vận hành: Việc phát hiện và sửa lỗi ngay trên tệp CSV dễ dàng hơn rất nhiều so với việc phải gỡ lỗi hệ thống RAG sau khi đã nhồi hàng chục phân mảnh nhiễu vào Vector Database.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <h3>Bước 4 · Vector hóa dữ liệu (Embed ChromaDB) — Lưu trữ vào Vector Store</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            Tệp <code>artifacts/cleaned/cleaned_{run_id}.csv</code> gồm 89 phân mảnh chuẩn. Sử dụng mô hình xử lý ngôn ngữ <code>all-MiniLM-L6-v2</code>. Nơi lưu trữ (Collection): <code>day10_kb</code> tại đường dẫn <code>./chroma_db</code>.
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Tạo và cập nhật (upsert) 89 vector dựa trên mã <code>chunk_id</code>. Tự động dọn dẹp (prune) các ID cũ không còn giá trị. Xuất báo cáo chứng thực <code>artifacts/manifests/manifest_{run_id}.json</code>. Ghi log hoàn tất <code>embed_upsert count=89</code>, trạng thái <code>PIPELINE_OK</code>.
+          </div>
+          <div class="box"><strong>Thao tác thực hiện</strong>
+            Với mỗi phân mảnh: Hàm <code>chunk_retrieval_metadata()</code> gán thêm siêu dữ liệu (metadata) phân cấp độ ưu tiên (<code>priority_tier</code>) và chủ đề SLA. Hàm <code>build_embed_document()</code> chèn tiền tố <code>[P1|escalation]</code> để cải thiện độ chính xác khi nhúng vector (không làm thay đổi nội dung hiển thị cho người dùng cuối). Thực hiện đồng bộ hóa an toàn (idempotent upsert) với ChromaDB.
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Chuyển đổi văn bản thành vector toán học để phục vụ tìm kiếm ngữ nghĩa (nền tảng cốt lõi của RAG). Khắc phục tình trạng mô hình nhầm lẫn giữa sự kiện P1 (10 phút) và sự kiện P2 (90 phút) do văn cảnh tương đồng. Ngăn chặn các phân mảnh cũ từ các lần chạy trước bị lọt vào kết quả tìm kiếm mới.
+          </div>
+          <div class="box span-full"><strong>Tầm quan trọng</strong>
+            Agent chỉ trả lời đúng khi hệ thống truy xuất đưa ra đúng phân mảnh tài liệu. Do đó, Vector Store phải phản ánh <strong>chính xác trạng thái sạch (cleaned) hiện tại</strong> của bộ dữ liệu. Việc dùng metadata hỗ trợ tìm kiếm giúp phân tách rõ ràng giữa "tín hiệu cho máy học" và "nội dung cho người đọc", đảm bảo việc xếp hạng lại (re-rank) không làm méo mó câu trả lời.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <h3>Bước 5 · Đánh giá Truy xuất (Retrieval Evaluation) — Kiểm định chất lượng kết quả</h3>
+        <div class="step-grid">
+          <div class="box"><strong>Đầu vào (Input)</strong>
+            Cơ sở dữ liệu Vector ChromaDB từ Bước 4. Tệp câu hỏi kiểm thử <code>data/test_questions.json</code> (21 câu, kèm theo các điều kiện bắt buộc có/không có từ khóa). Tệp câu hỏi chấm điểm <code>data/grading_questions.json</code> (10 câu).
+          </div>
+          <div class="box"><strong>Đầu ra (Output)</strong>
+            Tệp báo cáo <code>artifacts/eval/after_fix_eval.csv</code> ghi nhận <strong>21/21</strong> câu kiểm thử vượt qua. Tệp kiểm toán xếp hạng <code>artifacts/eval/chunk_retrieval_audit.jsonl</code>. Tệp kết quả chấm điểm <code>artifacts/eval/grading_run.jsonl</code> đạt <strong>10/10</strong> điểm tuyệt đối.
+          </div>
+          <div class="box"><strong>Thao tác thực hiện</strong>
+            Hàm <code>resolve_query_doc_scope()</code> phân tích câu hỏi để khoanh vùng tài liệu mục tiêu, thu hẹp phạm vi tìm kiếm. Hàm <code>rerank_hits()</code> ưu tiên kết quả dựa trên metadata (mức độ ưu tiên, từ khóa). Hàm <code>evaluate_chunk_retrieval()</code> tính toán các chỉ số độ chính xác (top-1) và kiểm tra sự xuất hiện của các từ khóa cấm (hits_forbidden).
+          </div>
+          <div class="box"><strong>Vấn đề được giải quyết</strong>
+            Cung cấp bằng chứng kỹ thuật đầu cuối (end-to-end): Chứng minh rằng sau khi làm sạch và lập chỉ mục, hệ thống truy xuất thành công thông tin chính xác đối với các câu hỏi thực tế (ví dụ: hoàn tiền 7 ngày, 12 ngày phép, SLA mức P1 là 10 phút). Phát hiện sớm các lỗi lọt từ khóa cấm dù pipeline đã báo thành công.
+          </div>
+          <div class="box span-full"><strong>Tầm quan trọng</strong>
+            Khâu Đánh giá (Eval) đóng vai trò là "khách hàng nghiệm thu" của toàn bộ quy trình. Việc ghi lại chính xác mã <code>chunk_id</code> gây lỗi (thay vì chỉ báo Đạt/Không Đạt) giúp kỹ sư khoanh vùng và đối chiếu ngược lại với danh sách dữ liệu gốc một cách nhanh chóng.
+          </div>
+        </div>
       </div>
     </section>
 
     <section>
-      <h2>2. Đánh giá Tác động (Before & After)</h2>
-      <p class="muted">Hiệu quả của Agent sau khi tối ưu hóa Data Pipeline.</p>
+      <h2>2. Phân loại các Dạng nhiễu trong dữ liệu gốc (Tác động tới Retrieval)</h2>
+      <p class="muted">Thống kê trên tệp <code>policy_export_dirty.csv</code> — Trong số 39 mã tài liệu (<code>doc_id</code>), chỉ có 5 tài liệu hợp lệ thuộc về cơ sở tri thức (KB).</p>
+      <table>
+        <thead>
+          <tr><th>Dạng nhiễu (Pattern)</th><th>Số lượng (Dòng)</th><th>Ví dụ mã dòng lỗi</th><th>Rủi ro nếu không xử lý</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tài liệu rác (<code>invalid_doc_*</code> / <code>legacy_*</code>)</td><td>31 + 31</td><td>3, 14, 21, 112</td><td class="before">Các đoạn chính sách thật bị gắn sai ID, gây nhiễu kết quả khi truy vấn theo chủ đề.</td></tr>
+          <tr><td>Chính sách Nhân sự cũ (10 ngày phép)</td><td>28</td><td>1, 2, 6, 81, 210</td><td class="before">Hệ thống ưu tiên trả kết quả 10 ngày thay vì 12 ngày (quy định năm 2026).</td></tr>
+          <tr><td>Chính sách Hoàn tiền cũ (14 ngày)</td><td>7</td><td>4, 55, 84, 91, 94, 164</td><td class="before">Chứa thông tin bị cấm (hits_forbidden) trong top kết quả trả về.</td></tr>
+          <tr><td>Tiền tố "Nội dung không rõ ràng"</td><td>14</td><td>35, 55, 56, 141</td><td class="before">Làm giảm độ tương đồng ngữ nghĩa của Vector; che lấp các thông tin đúng.</td></tr>
+          <tr><td>Ký tự rác (Marker <code>!!!</code>)</td><td>4</td><td>56, 87, 90, 94</td><td class="before">Mô hình học sai từ vựng, giao diện hiển thị cho người dùng không chuyên nghiệp.</td></tr>
+          <tr><td>Phân mảnh rỗng hoặc chỉ có khoảng trắng</td><td>20</td><td>27, 28, 118, 130, 216</td><td class="before">Tạo ra các Vector rỗng làm loãng không gian tìm kiếm của hệ thống.</td></tr>
+          <tr><td>Văn bản bị lặp từ hoặc lặp đoạn</td><td>5</td><td>18, 25, 36, 109</td><td class="before">Các bản sao rác chiếm dụng vị trí top kết quả, đẩy thông tin chính xác xuống dưới.</td></tr>
+          <tr><td>Thông số SLA P2 (90 phút)</td><td>1</td><td>230</td><td class="before">Bị ưu tiên hiển thị nhầm lẫn khi người dùng truy vấn sự cố cấp độ P1 (10 phút).</td></tr>
+          <tr><td>Tài liệu ngoài phạm vi cho phép</td><td>47</td><td>7, 12, 30</td><td class="before">Nhiễu loạn toàn bộ cơ sở dữ liệu nếu không được cô lập (quarantine) kịp thời.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. Tác động của quá trình cải thiện (Trước và Sau)</h2>
+      <p class="muted">Sự thay đổi hành vi truy xuất sau khi làm sạch và lập chỉ mục — Được đo lường bằng độ chính xác của <code>top1_chunk_id</code>.</p>
       <table>
         <thead>
           <tr>
             <th>Kịch bản Truy vấn</th>
-            <th>Trạng thái Cũ (Lỗi)</th>
-            <th>Trạng thái Mới (Đã khắc phục)</th>
+            <th>Trạng thái Trước (Hệ thống lỗi)</th>
+            <th>Trạng thái Sau (Đã khắc phục)</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Chính sách hoàn tiền</td>
-            <td class="before">Trả về "14 ngày làm việc" (Thông tin cũ)</td>
+            <td>Truy vấn Chính sách Hoàn tiền</td>
+            <td class="before">Trả về "14 ngày làm việc" (Thông tin đã lỗi thời)</td>
             <td class="after">Cập nhật đúng "7 ngày làm việc"</td>
           </tr>
           <tr>
-            <td>Phép năm nhân sự (2026)</td>
-            <td class="before">Trả về 10 ngày (Lẫn lộn version cũ)</td>
-            <td class="after">Chuẩn hóa 12 ngày phép năm</td>
+            <td>Truy vấn Phép năm nhân sự (2026)</td>
+            <td class="before">Trả về 10 ngày (Bị lẫn lộn với phiên bản cũ)</td>
+            <td class="after">Chuẩn hóa thông tin 12 ngày phép năm</td>
           </tr>
           <tr>
-            <td>Thời gian Escalation Ticket P1</td>
-            <td class="before">Trả về 90 phút (Lấy nhầm policy P2)</td>
-            <td class="after">Chính xác 10 phút, đúng policy P1</td>
+            <td>Thời gian phản hồi sự cố (Escalation P1)</td>
+            <td class="before">Trả về 90 phút (Hệ thống lấy nhầm policy của P2)</td>
+            <td class="after">Chính xác 10 phút, đúng theo policy của P1</td>
           </tr>
           <tr>
-            <td>Injection Test (Dữ liệu rác)</td>
-            <td class="before">Mã lỗi <code>hits_forbidden=yes</code></td>
-            <td class="after">Bị chặn hoàn toàn bởi lớp kiểm định</td>
+            <td>Kiểm thử tấn công bằng dữ liệu rác (Injection)</td>
+            <td class="before">Phát sinh mã lỗi <code>hits_forbidden=yes</code></td>
+            <td class="after">Bị chặn đứng hoàn toàn bởi lớp kiểm định dữ liệu</td>
           </tr>
         </tbody>
       </table>
     </section>
 
     <section>
-      <h2>3. Các Rủi ro Cốt lõi & Phương pháp Khắc phục</h2>
-      <p class="muted">Mỗi rủi ro gồm: <strong>Nguyên nhân</strong> (vì sao xảy ra) → <strong>Tác động</strong> → <strong>Khắc phục</strong> → <strong>Minh chứng</strong> → <strong>Ví dụ minh họa</strong>.</p>
-      
+      <h2>4. Phân tích Rủi ro Dữ liệu &amp; Biện pháp Xử lý</h2>
+      <p class="muted">Diễn giải cấu trúc: <strong>Nguyên nhân</strong> → <strong>Ảnh hưởng</strong> → <strong>Biện pháp xử lý</strong> → <strong>Hạng mục chứng minh</strong> → <strong>Ví dụ thực tế</strong>.</p>
+
       <div class="risk-card done">
         <div class="risk-head">
-          <span class="risk-title">① Dữ liệu hoàn tiền (Refund) lỗi thời</span>
+          <span class="risk-title">① Xung đột phiên bản chính sách hoàn tiền (14 ngày vs 7 ngày)</span>
           <span class="pill pill-high">Nghiêm trọng</span>
           <span class="pill pill-ok">Đã xử lý</span>
         </div>
         <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Export CSV vẫn giữ policy v3 (“14 ngày làm việc”) lẫn với v4 (“7 ngày”). Nhiều hệ thống nguồn sync không đồng bộ version.</div>
-          <div class="box"><strong>Tác động</strong>CSKH / Agent báo sai thời hạn hoàn tiền → khách khiếu nại, vi phạm chính sách nội bộ.</div>
-          <div class="box"><strong>Khắc phục</strong>Rule <code>apply_refund_window_fix</code> thay 14→7; expectation E3 <code>refund_no_stale_14d_window</code> halt nếu còn sót.</div>
-          <div class="box"><strong>Minh chứng</strong>gq_d10_01 pass; eval <code>q_refund_window</code> — <code>hits_forbidden=no</code>.</div>
+          <div class="box"><strong>Nguyên nhân</strong>Có 7 dòng dữ liệu vẫn ghi thời hạn "14 ngày" nằm xen kẽ với 26 dòng ghi "7 ngày" do quá trình đồng bộ đa phiên bản bị lỗi.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Hệ thống truy xuất bốc nhầm thông tin "14 ngày" lên đầu, khiến Agent tư vấn sai quyền lợi cho khách hàng.</div>
+          <div class="box"><strong>Xử lý</strong>Sử dụng biểu thức chính quy (Regex) tự động chuyển đổi <code>14\s*ngày</code> thành 7 ngày. Áp dụng quy tắc kiểm định E3 và loại bỏ trùng lặp.</div>
+          <div class="box"><strong>Minh chứng</strong>Bộ thử nghiệm gq_d10_01 Pass hoàn toàn; hệ thống không ghi nhận lỗi <code>hits_forbidden</code>.</div>
         </div>
         <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          <span class="bad">❌ Trước:</span> Hỏi “bao nhiêu ngày hoàn tiền?” → Agent: “…14 ngày làm việc kể từ xác nhận đơn.”<br />
-          <span class="good">✅ Sau:</span> Cùng câu hỏi → “…7 ngày làm việc kể từ thời điểm xác nhận đơn hàng.” (file <code>after_fix_eval.csv</code>)
+          <strong>Ví dụ thực tế</strong>
+          Dòng 4 (Bản thô): <code>Yêu cầu hoàn tiền sẽ được xử lý trong 14 ngày làm việc…</code><br />
+          <span class="good">✅ Sau khi làm sạch:</span> <code>…7 ngày làm việc… [cleaned: stale_refund_window]</code> — Đảm bảo "14 ngày" bị xóa sổ khỏi Vector Store.
         </div>
       </div>
 
       <div class="risk-card done">
         <div class="risk-head">
-          <span class="risk-title">② Xung đột phiên bản chính sách nhân sự (HR)</span>
+          <span class="risk-title">② Dữ liệu Phép năm Nhân sự lỗi thời (10 ngày vs 12 ngày)</span>
           <span class="pill pill-high">Nghiêm trọng</span>
           <span class="pill pill-ok">Đã xử lý</span>
         </div>
         <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>CSV chứa song song HR 2025 (“10 ngày phép năm”) và HR 2026 (“12 ngày”). Dedupe cũ giữ bản đến trước nếu không sort theo ngày.</div>
-          <div class="box"><strong>Tác động</strong>Agent trả quyền lợi thấp hơn thực tế; nhân viên tin sai chính sách 2026.</div>
-          <div class="box"><strong>Khắc phục</strong>Quarantine <code>stale_hr_content_10d_annual</code> + cutoff từ contract; sort <code>effective_date</code> desc trước dedupe.</div>
-          <div class="box"><strong>Minh chứng</strong>8 chunk HR stale trong quarantine; gq_d10_09 pass “12 ngày phép năm”.</div>
+          <div class="box"><strong>Nguyên nhân</strong>Tập dữ liệu chứa tới 28 dòng ghi "10 ngày phép (chuẩn 2025)" nhưng chỉ có 3 dòng ghi chuẩn mới "12 ngày". Thuật toán lọc trùng mặc định giữ lại bản ghi cũ.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Số lượng phân mảnh 10 ngày áp đảo trong không gian Vector, dẫn đến việc Agent luôn trả lời sai thông tin phép năm cho nhân viên trong năm 2026.</div>
+          <div class="box"><strong>Xử lý</strong>Cách ly các bản ghi cũ (<code>stale_hr_content_10d_annual</code>); Đặt mốc thời gian hiệu lực và sắp xếp giảm dần trước khi lọc trùng.</div>
+          <div class="box"><strong>Minh chứng</strong>Câu hỏi kiểm thử gq_d10_09 bắt buộc trả về "12 ngày" đã Pass; các bản ghi cũ được tệp quarantine lưu trữ làm bằng chứng.</div>
         </div>
         <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          <span class="bad">❌ Trước:</span> “Nhân viên dưới 3 năm được bao nhiêu ngày phép?” → có thể trả “10 ngày phép năm”.<br />
-          <span class="good">✅ Sau:</span> → “12 ngày phép năm theo chính sách 2026.” — chunk 2025 nằm trong <code>quarantine_lab-final.csv</code>, reason <code>stale_hr_content_10d_annual</code>
+          <strong>Ví dụ thực tế</strong>
+          Dòng 35: <code>Nội dung không rõ ràng: …12 ngày phép năm…</code> → Hệ thống tự động gỡ tiền tố rác và giữ lại thông tin 12 ngày.<br />
+          Dòng 247: <code>…12 ngày phép năm theo chính sách 2026.</code> → Trở thành phân mảnh ưu tiên số 1.
         </div>
       </div>
 
       <div class="risk-card done">
         <div class="risk-head">
-          <span class="risk-title">③ Sai lệch ngữ cảnh Retrieval (SLA Escalation P1 vs P2)</span>
+          <span class="risk-title">③ Lẫn lộn mức độ sự cố P1 và P2 trong tài liệu SLA</span>
           <span class="pill pill-high">Nghiêm trọng</span>
           <span class="pill pill-ok">Đã xử lý</span>
         </div>
         <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Chunk P1 và P2 cùng doc <code>sla_p1_2026</code>, câu chữ gần nhau (“escalate”, “phút”). Vector search coi chúng tương đồng → xếp P2 (90 phút) lên trước.</div>
-          <div class="box"><strong>Tác động</strong>On-call hiểu nhầm SLA escalation P1 là 90 phút thay vì 10 phút → phản ứng chậm sự cố nghiêm trọng.</div>
-          <div class="box"><strong>Khắc phục</strong>Embed prefix <code>[P1|escalation]</code>; query trong phạm vi doc; re-rank theo <code>priority_tier</code> / <code>sla_topic</code>.</div>
-          <div class="box"><strong>Minh chứng</strong>gq_d10_06 pass; eval <code>q_p1_escalation</code> top-1 chứa “10 phút”.</div>
+          <div class="box"><strong>Nguyên nhân</strong>Dòng 230 mô tả sự cố P2 (Escalation sau 90 phút) nằm rất gần cấu trúc câu của dòng 227 mô tả sự cố P1 (10 phút) trong cùng một tài liệu.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Thuật toán tìm kiếm ngữ nghĩa đánh giá độ tương đồng của P2 cao hơn P1, khiến Agent báo sai thời gian xử lý sự cố khẩn cấp.</div>
+          <div class="box"><strong>Xử lý</strong>Nhúng tiền tố ẩn <code>[P1|escalation]</code> vào Vector; khai báo siêu dữ liệu ưu tiên (<code>priority_tier</code>) để hệ thống xếp hạng lại (re-rank).</div>
+          <div class="box"><strong>Minh chứng</strong>Câu kiểm thử gq_d10_06 Pass; đánh giá truy vấn P1 chính xác lôi ra kết quả "10 phút".</div>
         </div>
         <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          Hỏi: “Ticket P1 không phản hồi sau bao lâu thì auto escalate?”<br />
-          <span class="bad">❌ Trước:</span> Top-1: “Ticket P2: Escalation sau 90 phút…”<br />
-          <span class="good">✅ Sau:</span> Top-1: “Ticket P1: … escalate … trong 10 phút.” (metadata <code>priority_tier=P1</code>, <code>sla_topic=escalation</code>)
+          <strong>Ví dụ thực tế</strong>
+          Câu hỏi người dùng: "Sự cố cấp độ P1 nếu không được phản hồi sau bao lâu thì bị leo thang (escalate)?"<br />
+          <span class="bad">❌ Trạng thái trước:</span> Ưu tiên đưa ra đoạn văn 90 phút của P2 · <span class="good">✅ Trạng thái sau:</span> Trả lời chuẩn xác "Escalation P1… 10 phút".
         </div>
       </div>
 
       <div class="risk-card done">
         <div class="risk-head">
-          <span class="risk-title">④ Nhiễu dữ liệu thô (Ký tự rác <code>!!!</code>)</span>
-          <span class="pill pill-mid">Trung bình</span>
-          <span class="pill pill-ok">Đã xử lý</span>
-        </div>
-        <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Lab cố ý inject corruption trong CSV (dòng 56: <code>!!!Ticket P1 có SLA…</code>) mô phỏng lỗi migration/export.</div>
-          <div class="box"><strong>Tác động</strong>Preview retrieval hiển thị <code>!!!</code>; embedding học nhiễu → giảm độ tin cậy câu trả lời.</div>
-          <div class="box"><strong>Khắc phục</strong><code>_strip_corruption_markers()</code> gỡ <code>!!!</code>; E10 <code>no_corruption_markers</code> cảnh báo nếu còn sót.</div>
-          <div class="box"><strong>Minh chứng</strong>Log: <code>corruption_marker_chunks=0</code>.</div>
-        </div>
-        <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          Raw: <code>Nội dung không rõ ràng: !!!Ticket P1 có SLA phản hồi ban đầu 15 phút…</code><br />
-          <span class="good">✅ Sau clean:</span> <code>Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.</code> — không còn <code>!!!</code> trong cleaned/embed
-        </div>
-      </div>
-      
-      <div class="risk-card done">
-        <div class="risk-head">
-          <span class="risk-title">⑤ Cảnh báo giả (False Alarm) về Freshness</span>
-          <span class="pill pill-mid">Trung bình</span>
-          <span class="pill pill-ok">Đã xử lý</span>
-        </div>
-        <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong><code>exported_at</code> trong CSV là tháng 4/2026 (~1446h) trong khi chạy lab tháng 6/2026 — vượt SLA 720h dù pipeline vừa publish xong.</div>
-          <div class="box"><strong>Tác động</strong>Dashboard freshness FAIL liên tục → team bỏ qua cảnh báo thật (alert fatigue).</div>
-          <div class="box"><strong>Khắc phục</strong><code>FRESHNESS_ALIGN_STALE_SNAPSHOT=1</code> căn timestamp khi ingest; tách SLA data vs pipeline latency; giữ <code>source_latest_exported_at</code> audit.</div>
-          <div class="box"><strong>Minh chứng</strong>3 boundary PASS; manifest ghi <code>freshness_align.aligned=true</code>, <code>source_age_hours=1446</code>.</div>
-        </div>
-        <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          <span class="bad">❌ Trước:</span> <code>freshness_data_ingest=FAIL</code> age_hours=1445 &gt; sla 720 — dù pipeline chạy 20 giây là xong.<br />
-          <span class="good">✅ Sau:</span> <code>data_ingest=PASS</code> (age ~0h sau align), <code>pipeline_latency=PASS</code> (~0.005h) — vẫn biết nguồn gốc cũ qua <code>source_latest_exported_at=2026-04-11</code>
-        </div>
-      </div>
-
-      <div class="risk-card done">
-        <div class="risk-head">
-          <span class="risk-title">⑥ Thiếu chunk canonical trong export</span>
-          <span class="pill pill-mid">Trung bình</span>
-          <span class="pill pill-ok">Đã xử lý</span>
-        </div>
-        <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Export bẩn thiếu fact chuẩn (escalation 10 phút, access Level 4…) dù file <code>data/docs/</code> có đầy đủ.</div>
-          <div class="box"><strong>Tác động</strong>Retrieval không tìm thấy câu trả lời dù policy đúng tồn tại trong tổ chức.</div>
-          <div class="box"><strong>Khắc phục</strong><code>_merge_canonical_from_contract</code> — merge 5 doc từ <code>data_contract.yaml</code>.</div>
-          <div class="box"><strong>Minh chứng</strong><code>cleaned_records</code> tăng 49 → 86 sau merge đầy đủ.</div>
-        </div>
-        <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          Export không có câu escalation 10 phút → grading <code>gq_d10_06</code> fail.<br />
-          <span class="good">✅ Sau merge</span> từ <code>sla_p1_2026.txt</code>: chunk “Escalation P1: … 10 phút” có trong Chroma → pass.
-        </div>
-      </div>
-
-      <div class="risk-card done">
-        <div class="risk-head">
-          <span class="risk-title">⑦ <code>--skip-validate</code> đưa dữ liệu lỗi vào Chroma</span>
+          <span class="risk-title">④ Tài liệu rác chứa thông tin chính sách thật</span>
           <span class="pill pill-high">Nghiêm trọng</span>
           <span class="pill pill-ok">Đã xử lý</span>
         </div>
         <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Demo Sprint 3 cần embed dù expectation fail — flag <code>--skip-validate</code> dễ bị chạy nhầm môi trường thật.</div>
-          <div class="box"><strong>Tác động</strong>Index nhiễu (refund 14 ngày) tồn tại đến khi prune/run lại — agent trả sai ngẫu nhiên.</div>
-          <div class="box"><strong>Khắc phục</strong>Bắt buộc <code>ALLOW_SKIP_VALIDATE=1</code> trong .env mới được skip.</div>
-          <div class="box"><strong>Minh chứng</strong>Chạy skip không có env → exit code 5 + thông báo lỗi rõ.</div>
+          <div class="box"><strong>Nguyên nhân</strong>Tồn tại 62 dòng dữ liệu bị gắn mã tài liệu rác (ví dụ: <code>invalid_doc_*</code>) nhưng nội dung bên trong lại là chính sách thật.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Việc gắn sai ID khiến các bộ lọc tìm kiếm theo chủ đề bỏ sót hoàn toàn những thông tin này, đồng thời gây nhiễu không gian tổng.</div>
+          <div class="box"><strong>Xử lý</strong>Thiết lập danh sách cho phép (allowlist) chỉ nhận 5 ID hợp lệ từ hợp đồng dữ liệu; cách ly toàn bộ các tài liệu không rõ nguồn gốc.</div>
+          <div class="box"><strong>Minh chứng</strong>Không còn bất kỳ mã <code>invalid_doc_*</code> nào tồn tại trong tệp đã làm sạch (cleaned CSV) và trong ChromaDB.</div>
         </div>
         <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          <code>python etl_pipeline.py run --no-refund-fix --skip-validate</code> (inject) → expectation FAIL nhưng vẫn embed nếu có <code>ALLOW_SKIP_VALIDATE=1</code>.<br />
-          <span class="good">✅ Production:</span> không set env → pipeline <strong>dừng</strong>, không embed dữ liệu hỏng.
+          <strong>Ví dụ thực tế</strong>
+          Dòng 3: Dù chứa nội dung "Ticket P1 có SLA…" nhưng mã ID là <code>invalid_doc_xzyxyx</code> → Bị cách ly ngay lập tức, không được nhúng vector.
         </div>
       </div>
 
       <div class="risk-card done">
         <div class="risk-head">
-          <span class="risk-title">⑧ Vector Chroma cũ / metadata thiếu</span>
+          <span class="risk-title">⑤ Tiền tố gây nhiễu và ký tự rác</span>
           <span class="pill pill-mid">Trung bình</span>
           <span class="pill pill-ok">Đã xử lý</span>
         </div>
         <div class="grid-3">
-          <div class="box"><strong>Nguyên nhân</strong>Rerun pipeline đổi <code>chunk_id</code> nhưng không xóa id cũ; hoặc embed đời đầu không có <code>chunk_text</code> trong metadata.</div>
-          <div class="box"><strong>Tác động</strong>Top-k lẫn chunk run cũ → grading fail không ổn định giữa các lần chạy.</div>
-          <div class="box"><strong>Khắc phục</strong>Prune trước upsert; prune fail → halt; verify metadata sau embed.</div>
-          <div class="box"><strong>Minh chứng</strong>Log <code>embed_prune_removed=19</code>; collection = 86 chunk khớp cleaned.</div>
+          <div class="box"><strong>Nguyên nhân</strong>Nhiều dòng dữ liệu bị dính chuỗi "Nội dung không rõ ràng:" hoặc các ký tự lỗi như <code>!!!</code> do quá trình trích xuất hệ thống bị lỗi.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Mô hình ngôn ngữ học sai các từ vựng này, làm giảm đáng kể điểm tương đồng (similarity score) khi so khớp với câu hỏi sạch của người dùng.</div>
+          <div class="box"><strong>Xử lý</strong>Viết hàm tự động quét và bóc tách các chuỗi ký tự lỗi ở mọi vị trí; Áp dụng luật kiểm định E9 và E10.</div>
+          <div class="box"><strong>Minh chứng</strong>Thông số <code>corruption_marker_chunks=0</code>; giao diện xem trước kết quả hiển thị mượt mà và chuyên nghiệp.</div>
         </div>
         <div class="example-box">
-          <strong>Ví dụ minh họa</strong>
-          Run 1: 49 chunk. Run 2 sau merge canonical: 86 chunk — prune xóa 19 id không còn trong cleaned mới, tránh “mồi cũ” trong top-k.
+          <strong>Ví dụ thực tế</strong>
+          Dòng 56 (Bản thô): <code>Nội dung không rõ ràng: !!!Ticket P1 có SLA…</code> → Được làm sạch thành: <code>Ticket P1 có SLA phản hồi ban đầu 15 phút…</code>
+        </div>
+      </div>
+
+      <div class="risk-card done">
+        <div class="risk-head">
+          <span class="risk-title">⑥ Nội dung trùng lặp, lặp từ và phân mảnh rỗng</span>
+          <span class="pill pill-mid">Trung bình</span>
+          <span class="pill pill-ok">Đã xử lý</span>
+        </div>
+        <div class="grid-3">
+          <div class="box"><strong>Nguyên nhân</strong>Tồn tại 20 phân mảnh chỉ toàn khoảng trắng hoặc không có nội dung. Một số dòng gặp lỗi lặp từ liên tục (như "làm việc làm việc").</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Các phân mảnh vô nghĩa này chiếm dụng vị trí ưu tiên, đẩy các thông tin hữu ích ra khỏi danh sách kết quả (Top-K).</div>
+          <div class="box"><strong>Xử lý</strong>Cô lập các phân mảnh rỗng; Triển khai thuật toán gộp các từ/mệnh đề bị lặp (collapse repeated tokens) và tối ưu hóa lọc trùng.</div>
+          <div class="box"><strong>Minh chứng</strong>Có 60 bản ghi trùng lặp bị đẩy vào khu vực cách ly. Pass bài kiểm tra <code>test_collapse_long_repeated_clause</code>.</div>
+        </div>
+        <div class="example-box">
+          <strong>Ví dụ thực tế</strong>
+          Dòng 25: Câu "7 ngày làm việc…" bị in lặp lại 5 lần liền nhau → Thuật toán tự động rút gọn thành 1 lần duy nhất và lưu vào bộ chỉ mục.
+        </div>
+      </div>
+
+      <div class="risk-card done">
+        <div class="risk-head">
+          <span class="risk-title">⑦ Thiếu hụt thông tin quan trọng (Canonical gap)</span>
+          <span class="pill pill-mid">Trung bình</span>
+          <span class="pill pill-ok">Đã xử lý</span>
+        </div>
+        <div class="grid-3">
+          <div class="box"><strong>Nguyên nhân</strong>Bản trích xuất CSV bị mất một số dữ liệu sống còn (như quy định VPN, cấp độ CISO) do lỗi giới hạn độ dài khi xuất file.</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Dù hệ thống tìm kiếm đúng chủ đề tài liệu, nhưng vì không có phân mảnh chứa câu trả lời nên toàn bộ quy trình đánh giá bị Fail.</div>
+          <div class="box"><strong>Xử lý</strong>Kích hoạt cơ chế <code>_merge_canonical_from_contract</code> để tự động bù đắp các dữ liệu còn thiếu từ thư mục lưu trữ tài liệu gốc (Canonical Docs).</div>
+          <div class="box"><strong>Minh chứng</strong>Số lượng phân mảnh chuẩn tăng lên 89; các câu hỏi gq_d10_06/08/10 đều Pass mượt mà.</div>
+        </div>
+        <div class="example-box">
+          <strong>Ví dụ thực tế</strong>
+          Trạng thái trước: Không tìm thấy quy định thời gian P1. Nhờ cơ chế tự động bù đắp từ tệp <code>sla_p1_2026.txt</code>, hệ thống đã nạp thành công phân mảnh: <code>Escalation P1: … 10 phút</code>.
+        </div>
+      </div>
+
+      <div class="risk-card done">
+        <div class="risk-head">
+          <span class="risk-title">⑧ Lẫn lộn tài liệu ngoài phạm vi cho phép</span>
+          <span class="pill pill-mid">Trung bình</span>
+          <span class="pill pill-ok">Đã xử lý</span>
+        </div>
+        <div class="grid-3">
+          <div class="box"><strong>Nguyên nhân</strong>Bản CSV chứa 47 dòng liên quan đến các chính sách bảo mật nội bộ, vốn không thuộc 5 tài liệu công khai được duyệt (Allowlist).</div>
+          <div class="box"><strong>Ảnh hưởng</strong>Hệ thống tìm kiếm tổng (Global Search) bốc nhầm các hướng dẫn về bảo mật vào câu hỏi hỗ trợ IT hoặc nhân sự thông thường.</div>
+          <div class="box"><strong>Xử lý</strong>Xây dựng cơ chế lọc cực kỳ nghiêm ngặt dựa trên danh sách cho phép; Áp dụng hàm khoanh vùng phạm vi tài liệu khi truy vấn.</div>
+          <div class="box"><strong>Minh chứng</strong>Ghi nhận 0 dòng tài liệu ngoại lai trong tệp đã làm sạch; kết quả đánh giá 21/21 hoàn toàn tập trung vào đúng trọng tâm.</div>
+        </div>
+        <div class="example-box">
+          <strong>Ví dụ thực tế</strong>
+          Dòng 7 nhắc đến "Xác thực hai yếu tố (MFA)…" → Bị hệ thống phát hiện là nằm ngoài phạm vi, đánh dấu <code>unknown_doc_id</code> và loại bỏ khỏi Vector.
         </div>
       </div>
     </section>
 
     <section>
-      <h2>4. Các Module Nâng cao (Bonus SCORING)</h2>
+      <h2>5. Hạng mục chứng minh &amp; Kiểm toán Phân mảnh (Audit)</h2>
       <table>
-        <thead><tr><th>Tính năng</th><th>Mô tả kỹ thuật</th><th>Trạng thái/Minh chứng</th></tr></thead>
+        <thead><tr><th>Hạng mục chứng minh</th><th>Đường dẫn thư mục lưu trữ</th></tr></thead>
         <tbody>
-          <tr>
-            <td>Pydantic Validation</td>
-            <td>Kiểm tra toàn vẹn Schema của dữ liệu Cleaned trước khi nhúng. Halt nếu phát hiện lỗi.</td>
-            <td><code>pydantic_validate: rows=86, errors=0</code></td>
-          </tr>
-          <tr>
-            <td>Observability Boundary</td>
-            <td>Theo dõi độ trễ hệ thống qua 3 chốt chặn: Ingest, Publish, Pipeline Latency.</td>
-            <td>Cả 3 boundary đạt trạng thái PASS trong Manifest.</td>
-          </tr>
+          <tr><td>Tệp dữ liệu thô (Dùng để phân tích rủi ro)</td><td><code>data/raw/policy_export_dirty.csv</code></td></tr>
+          <tr><td>Báo cáo Đánh giá (Eval) &amp; Độ chính xác Top 1</td><td><code>artifacts/eval/after_fix_eval.csv</code></td></tr>
+          <tr><td>Nhật ký kiểm toán thứ hạng (Rank Audit)</td><td><code>artifacts/eval/chunk_retrieval_audit.jsonl</code></td></tr>
+          <tr><td>Kết quả Chấm điểm tự động</td><td><code>artifacts/eval/grading_run.jsonl</code></td></tr>
+          <tr><td>Bộ dữ liệu đã được làm sạch (Cleaned Corpus)</td><td><code>artifacts/cleaned/cleaned_lab-final.csv</code></td></tr>
+          <tr><td>Bộ dữ liệu bị cách ly (Dùng để đối chiếu lỗi)</td><td><code>artifacts/quarantine/quarantine_lab-final.csv</code></td></tr>
         </tbody>
       </table>
     </section>
 
     <section>
-      <h2>5. Chỉ mục Tệp tin Bằng chứng</h2>
-      <table>
-        <thead><tr><th>Dữ liệu chứng minh</th><th>Đường dẫn thư mục</th></tr></thead>
-        <tbody>
-          <tr><td>Pipeline Logs</td><td><code>artifacts/logs/run_lab-final.log</code></td></tr>
-          <tr><td>Số liệu Tracking (Manifest)</td><td><code>artifacts/manifests/manifest_lab-final.json</code></td></tr>
-          <tr><td>Kết quả Grading chính thức</td><td><code>artifacts/eval/grading_run.jsonl</code></td></tr>
-          <tr><td>Kết quả Evaluation mở rộng</td><td><code>artifacts/eval/after_fix_eval.csv</code></td></tr>
-        </tbody>
-      </table>
-    </section>
+      <h2>6. Hướng dẫn Cài đặt &amp; Tái tạo kết quả Lab</h2>
+      <p class="muted">Yêu cầu chạy trong thư mục <code>day10/lab</code> · Môi trường Python 3.10+ · Không yêu cầu GPU hay API Key.</p>
 
-    <section>
-      <h2>6. Lệnh Tái tạo Môi trường & Kết quả</h2>
-      <div class="evidence" style="white-space: pre-wrap;"># Truy cập thư mục lab & kích hoạt môi trường ảo
-cd day10/lab
-.\.venv\Scripts\activate
+      <h3>Bước 1 — Cài đặt môi trường (Dành cho lần chạy đầu tiên)</h3>
+      <div class="evidence" style="white-space: pre-wrap;">python -m venv .venv
+.venv\Scripts\activate          # Dành cho Windows
+# source .venv/bin/activate     # Dành cho macOS/Linux
+pip install -r requirements.txt
+copy .env.example .env          # Trên macOS/Linux sử dụng lệnh: cp .env.example .env</div>
 
-# Thực thi Pipeline với cấu hình an toàn
-python etl_pipeline.py run --run-id lab-final
-
-# Chạy đánh giá và lưu kết quả
-python grading_run.py --out artifacts/eval/grading_run.jsonl
+      <h3>Bước 2 — Khởi chạy Luồng xử lý &amp; Đánh giá</h3>
+      <div class="evidence" style="white-space: pre-wrap;">python etl_pipeline.py run --run-id lab-final
 python eval_retrieval.py --out artifacts/eval/after_fix_eval.csv
-
-# Kiểm tra toàn diện trước khi bàn giao
+python grading_run.py --out artifacts/eval/grading_run.jsonl
 python pre_submit_check.py --run-id lab-final</div>
+
+      <h3>Bước 3 — Tiêu chí nghiệm thu kỳ vọng</h3>
+      <table>
+        <thead><tr><th>Hạng mục kiểm tra</th><th>Đạt (Pass) khi</th></tr></thead>
+        <tbody>
+          <tr><td>Luồng xử lý (Pipeline)</td><td>Ghi nhận log <code>PIPELINE_OK</code> · Số lượng sạch: <strong>89</strong> · Số lượng bị cách ly: <strong>213</strong></td></tr>
+          <tr><td>Đánh giá tự động (21 câu hỏi)</td><td>Chỉ số <code>top1_accurate=21/21</code> · Toàn bộ các dòng không vi phạm từ khóa cấm (<code>hits_forbidden=no</code>)</td></tr>
+          <tr><td>Chấm điểm hệ thống (10 câu hỏi)</td><td>Trạng thái chạy <code>grading_run.py</code> là exit 0 · Hoàn thành đủ từ <code>gq_d10_01</code> đến <code>10</code></td></tr>
+          <tr><td>Kiểm tra toàn diện trước khi nộp bài</td><td>Lệnh <code>pre_submit_check.py</code> trả về exit 0 (Bao gồm cả bộ test, mốc thời gian và đánh giá)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:18px">Các lỗi thường gặp và Cách khắc phục</h3>
+      <table>
+        <thead><tr><th>Triệu chứng (Lỗi hiển thị)</th><th>Hướng dẫn xử lý</th></tr></thead>
+        <tbody>
+          <tr><td><code>Collection error</code> (Lỗi kết nối bộ lưu trữ)</td><td>Đảm bảo đã chạy lệnh <code>etl_pipeline.py run</code> để tạo cấu trúc cơ sở dữ liệu trước khi chạy đánh giá.</td></tr>
+          <tr><td><code>PIPELINE_HALT</code> (Luồng xử lý bị dừng đột ngột)</td><td>Kiểm tra ngay file log để tìm dòng <code>expectation[...] FAIL</code> — Điều này có nghĩa bộ dữ liệu làm sạch vẫn còn sót nhiễu.</td></tr>
+          <tr><td>Mô hình ngôn ngữ tải quá chậm</td><td>Lần chạy đầu tiên bắt buộc phải có kết nối mạng ổn định để tải mô hình <code>all-MiniLM-L6-v2</code>; các lần sau hệ thống sẽ tự động dùng bộ nhớ đệm (cache).</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <footer>
-      Hệ thống đánh giá Lab Day 10 · Lecture-Day-08-09-10/day10/lab · Chi tiết luồng xử lý: <code>reports/report.md</code>
+      Báo cáo Lab Day 10 · Nhận diện rủi ro dữ liệu trong hệ thống Retrieval · Nguồn dữ liệu giả lập: <code>policy_export_dirty.csv</code>
     </footer>
   </div>
 </body>
