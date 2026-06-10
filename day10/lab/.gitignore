@@ -6,6 +6,15 @@ __pycache__/
 .DS_Store
 chroma_db/
 .pytest_cache/
-*.log
 
+# Logs local — giữ artifact nộp bài
+*.log
 artifacts/*
+!artifacts/eval/
+!artifacts/eval/**
+!artifacts/manifests/
+!artifacts/manifests/**
+!artifacts/cleaned/
+!artifacts/cleaned/**
+!artifacts/quarantine/
+!artifacts/quarantine/**

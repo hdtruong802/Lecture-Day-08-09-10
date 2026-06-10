@@ -17,6 +17,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from retrieval.query import query_retrieval_pool
+from retrieval.rerank import hits_display_texts, rerank_hits
+
 load_dotenv()
 ROOT = Path(__file__).resolve().parent
 
@@ -32,6 +35,12 @@ def main() -> int:
         default=str(ROOT / "artifacts" / "eval" / "grading_run.jsonl"),
     )
     p.add_argument("--top-k", type=int, default=5)
+    p.add_argument("--pool-k", type=int, default=20)
+    p.add_argument(
+        "--no-rerank",
+        action="store_true",
+        help="Chỉ vector search (kiểm tra embed prefix)",
+    )
     args = p.parse_args()
 
     try:
@@ -57,16 +66,40 @@ def main() -> int:
     with out.open("w", encoding="utf-8") as f:
         for q in qs:
             text = q["question"]
-            res = col.query(query_texts=[text], n_results=args.top_k)
-            docs = (res.get("documents") or [[]])[0]
-            metas = (res.get("metadatas") or [[]])[0]
-            blob = " ".join(docs).lower()
+            pool_k = max(args.pool_k, args.top_k)
             must_any = [x.lower() for x in q.get("must_contain_any", [])]
+            want_top1 = (q.get("expect_top1_doc_id") or "").strip()
+            docs, metas = query_retrieval_pool(
+                col,
+                text,
+                pool_k=pool_k,
+                focus_doc_id=want_top1,
+            )
+            if args.no_rerank:
+                docs, metas = rerank_hits(
+                    docs,
+                    metas,
+                    must_any=must_any,
+                    want_top1=want_top1,
+                    question=text,
+                    metadata_only=True,
+                )
+            else:
+                docs, metas = rerank_hits(
+                    docs,
+                    metas,
+                    must_any=must_any,
+                    want_top1=want_top1,
+                    question=text,
+                )
+            docs = docs[: args.top_k]
+            metas = metas[: args.top_k]
+            display_docs = hits_display_texts(docs, metas)
+            blob = " ".join(display_docs).lower()
             forbidden = [x.lower() for x in q.get("must_not_contain", [])]
             ok_any = any(m in blob for m in must_any) if must_any else True
             bad_forb = any(m in blob for m in forbidden) if forbidden else False
             top_doc = (metas[0] or {}).get("doc_id", "") if metas else ""
-            want_top1 = (q.get("expect_top1_doc_id") or "").strip()
             top1_ok = True
             if want_top1:
                 top1_ok = top_doc == want_top1

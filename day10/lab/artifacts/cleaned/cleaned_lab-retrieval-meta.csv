@@ -1,0 +1,50 @@
+chunk_id,doc_id,chunk_text,effective_date,exported_at
+policy_refund_v4_1_3b11f30cc4b49d25,policy_refund_v4,Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng.,2026-03-30,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_2_b49d2cb54042efb2,it_helpdesk_faq,Tài khoản bị khóa sau 5 lần đăng nhập sai liên tiếp.,2026-03-17,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_3_ab622211ba880896,sla_p1_2026,Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.,2026-03-15,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_4_a2f090b784235413,policy_refund_v4,Yêu cầu hoàn tiền được chấp nhận trong vòng 7 ngày làm việc kể từ xác nhận đơn. [cleaned: stale_refund_window],2026-02-05,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_5_79eee66db0ad5c42,policy_refund_v4,"Ngoại lệ không được hoàn tiền: sản phẩm thuộc danh mục hàng kỹ thuật số (license key, subscription). Đơn hàng đã áp dụng mã giảm giá Flash Sale cũng không được hoàn.",2026-02-01,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_6_bd3ca4d3e241f89d,policy_refund_v4,Finance Team xử lý hoàn tiền trong 3-5 ngày làm việc và thông báo kết quả cho khách hàng.,2026-02-01,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_7_267256a113d0b870,policy_refund_v4,CS Agent xem xét yêu cầu hoàn tiền trong vòng 1 ngày làm việc và xác nhận đủ điều kiện.,2026-02-01,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_8_e04c3bdee980c377,policy_refund_v4,Email liên hệ nội bộ cho chính sách hoàn tiền: cs-refund@company.internal. Hotline nội bộ: ext. 1234.,2026-02-01,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_9_8f213dd9a4176f47,policy_refund_v4,Hoàn tiền qua phương thức thanh toán gốc hoặc store credit với giá trị 110% so với số tiền hoàn.,2026-02-01,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_10_0e21e6454ce20b25,it_helpdesk_faq,VPN: mỗi tài khoản được kết nối tối đa 2 thiết bị cùng lúc. Phần mềm sử dụng: Cisco AnyConnect.,2026-01-20,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_11_a59fe601fd81d723,it_helpdesk_faq,Mật khẩu phải được thay đổi mỗi 90 ngày. Hệ thống nhắc nhở 7 ngày trước khi hết hạn.,2026-01-20,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_12_3916e22bbebbea9a,it_helpdesk_faq,Quên mật khẩu: truy cập SSO portal hoặc liên hệ Helpdesk ext. 9000. Mật khẩu mới gửi qua email trong vòng 5 phút.,2026-01-20,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_13_5e04ca9dad3a09d1,it_helpdesk_faq,Dung lượng hộp thư tiêu chuẩn là 50GB. Nếu đầy có thể xóa email cũ hoặc yêu cầu tăng dung lượng qua ticket IT-ACCESS.,2026-01-20,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_14_1db5ecce359949f2,it_helpdesk_faq,Laptop mới được cấp trong ngày onboarding đầu tiên. Liên hệ HR hoặc IT Admin nếu có vấn đề.,2026-01-20,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_15_01ec23fddd58eb9a,it_helpdesk_faq,FAQ bổ sung: đổi mật khẩu qua portal self-service có thể mất tối đa 24 giờ để đồng bộ toàn hệ thống.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_16_b656b53a1d6bea9e,sla_p1_2026,Escalation P1: tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_17_475b7e8ad50dc2f3,sla_p1_2026,Thông báo stakeholder P1: update mỗi 30 phút cho đến khi resolve.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_18_b21b5567604156b5,sla_p1_2026,Kênh thông báo sự cố P1: Slack #incident-p1 và email incident@company.internal. PagerDuty tự động nhắn on-call.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_19_72e1b1fc5e2489ac,sla_p1_2026,Ticket P2: phản hồi ban đầu 2 giờ và resolution 1 ngày làm việc. Escalation sau 90 phút không phản hồi.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_20_ecb73e5a33af7d3c,hr_leave_policy,Nhân viên dưới 3 năm kinh nghiệm được 12 ngày phép năm theo chính sách 2026.,2026-01-11,2026-06-10T06:02:31.410892+00:00
+access_control_sop_21_d4ec0b7163219bea,access_control_sop,Level 4 Admin Access yêu cầu phê duyệt bởi IT Manager và CISO. Thời gian xử lý: 5 ngày làm việc. Yêu cầu thêm: training bắt buộc về security policy.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+access_control_sop_22_441b10eb2ead5e68,access_control_sop,Quyền Standard Access (Level 2) được xử lý trong 2 ngày làm việc sau khi Line Manager và IT Admin phê duyệt.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+access_control_sop_23_998d004247cffc92,access_control_sop,Level 1 Read Only: phê duyệt bởi Line Manager. Thời gian xử lý: 1 ngày làm việc. Áp dụng cho nhân viên mới 30 ngày đầu.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+access_control_sop_24_adbaf3dd28e841bf,access_control_sop,Level 3 Elevated Access: phê duyệt bởi Line Manager + IT Admin + IT Security. Thời gian xử lý: 3 ngày làm việc.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+access_control_sop_25_9af4e446d3845b3f,access_control_sop,Escalation khẩn cấp: On-call IT Admin cấp quyền tạm thời max 24 giờ sau khi được Tech Lead phê duyệt.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_26_1ce956472773ebd8,hr_leave_policy,Nhân viên từ 3 đến 5 năm kinh nghiệm được 15 ngày phép năm theo chính sách 2026.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_27_0786aad719af008b,hr_leave_policy,Nhân viên trên 5 năm kinh nghiệm được 18 ngày phép năm theo chính sách 2026.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_28_aa2e6b7804fb2c69,hr_leave_policy,Nghỉ ốm: 10 ngày/năm có trả lương. Cần giấy tờ y tế nếu nghỉ trên 3 ngày liên tiếp.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_29_f4c91285b25d7558,hr_leave_policy,Tối đa 5 ngày phép năm chưa dùng được chuyển sang năm tiếp theo.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+hr_leave_policy_30_dc9be8b35e94e1b0,hr_leave_policy,Remote work: sau probation tối đa 2 ngày/tuần. Ngày onsite bắt buộc: Thứ 3 và Thứ 5.,2026-01-01,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_31_e57ec17b61eb9739,sla_p1_2026,!!!Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.,2025-11-17,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_32_9d0f8fc1ab69f76d,policy_refund_v4,Nội dung không rõ ràng:,2025-10-31,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_33_439234a7b674e24c,policy_refund_v4,Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. Nội dung có thể bị trùng do sync lại dữ liệu.,2025-10-26,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_34_407a33b02f6d136d,policy_refund_v4,!!!Yêu cầu hoàn tiền được chấp nhận trong vòng 7 ngày làm việc kể từ xác nhận đơn. [cleaned: stale_refund_window],2025-04-01,2026-06-10T06:02:31.410892+00:00
+access_control_sop_35_0582ea3a6b408c92,access_control_sop,IT Security thực hiện access review mỗi 6 tháng. Bất thường báo cáo lên CISO trong 24 giờ.,2025-03-25,2026-06-10T06:02:31.410892+00:00
+it_helpdesk_faq_36_9ebab0f7b9a2cd72,it_helpdesk_faq,Tài khoản bị khóa sau 5 lần đăng nhập sai liên tiếp. Chú ý: effective_date không đồng nhất giữa các nguồn.,2025-02-24,2026-06-10T06:02:31.410892+00:00
+policy_refund_v4_37_c128a1da15c5bcdc,policy_refund_v4,Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng. Yêu cầu được gửi trong vòng 7 ngày làm việc kể từ thời điểm xác nhận đơn hàng.,2025-02-19,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_38_ca2c01e8613ef64f,sla_p1_2026,Ticket P1: Phản hồi ban đầu (first response): 15 phút kể từ khi ticket được tạo.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_39_b3d1c68e0026b93f,sla_p1_2026,Ticket P1: Xử lý và khắc phục (resolution): 4 giờ.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_40_72c6a9fe5f8496ed,sla_p1_2026,Ticket P1: Escalation: Tự động escalate lên Senior Engineer nếu không có phản hồi trong 10 phút.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_41_310f0aed6755fec6,sla_p1_2026,"Ticket P1: Thông báo stakeholder: Ngay khi nhận ticket, update mỗi 30 phút cho đến khi resolve.",2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_42_bee209e908ae1103,sla_p1_2026,Ticket P2: Phản hồi ban đầu: 2 giờ.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_43_f666276ad905d3d1,sla_p1_2026,Ticket P2: Xử lý và khắc phục: 1 ngày làm việc.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_44_b3389517d0e829be,sla_p1_2026,Ticket P2: Escalation: Tự động escalate sau 90 phút không có phản hồi.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_45_9667cfe1da1e54a1,sla_p1_2026,Ticket P3: Phản hồi ban đầu: 1 ngày làm việc.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_46_2810847ea721e0e2,sla_p1_2026,Ticket P3: Xử lý và khắc phục: 5 ngày làm việc.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_47_db09ac251a208ac1,sla_p1_2026,Ticket P4: Phản hồi ban đầu: 3 ngày làm việc.,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_48_c4d08cd77929b1d1,sla_p1_2026,Ticket P4: Xử lý và khắc phục: Theo sprint cycle (thông thường 2-4 tuần).,2026-01-15,2026-06-10T06:02:31.410892+00:00
+sla_p1_2026_49_7d336008865029ec,sla_p1_2026,Kênh thông báo sự cố P1: Slack #incident-p1 và email incident@company.internal.,2026-01-15,2026-06-10T06:02:31.410892+00:00

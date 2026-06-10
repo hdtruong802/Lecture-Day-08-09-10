@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """
-Đánh giá retrieval đơn giản — before/after khi pipeline đổi dữ liệu embed.
-
-Không bắt buộc LLM: chỉ kiểm tra top-k chunk có chứa keyword kỳ vọng hay không
-(tiếp nối tinh thần Day 08/09 nhưng tập trung data layer).
+Đánh giá retrieval — metadata prefix (embed) + doc-scoped query + metadata re-rank.
 """
 
 from __future__ import annotations
@@ -17,6 +14,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from retrieval.query import query_retrieval_pool
+from retrieval.rerank import hits_display_texts, rerank_hits
+
 load_dotenv()
 
 ROOT = Path(__file__).resolve().parent
@@ -27,14 +27,28 @@ def main() -> int:
     parser.add_argument(
         "--questions",
         default=str(ROOT / "data" / "test_questions.json"),
-        help="JSON danh sách câu hỏi golden (retrieval)",
     )
     parser.add_argument(
         "--out",
         default=str(ROOT / "artifacts" / "eval" / "before_after_eval.csv"),
-        help="CSV kết quả",
     )
-    parser.add_argument("--top-k", type=int, default=3)
+    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument(
+        "--pool-k",
+        type=int,
+        default=20,
+        help="Số chunk lấy từ Chroma trước khi re-rank",
+    )
+    parser.add_argument(
+        "--no-rerank",
+        action="store_true",
+        help="Chỉ metadata re-rank (không boost keyword); vẫn doc-scope + embed prefix",
+    )
+    parser.add_argument(
+        "--no-doc-scope",
+        action="store_true",
+        help="Tắt query theo expect_top1_doc_id (chỉ dùng để debug)",
+    )
     args = parser.parse_args()
 
     try:
@@ -75,25 +89,60 @@ def main() -> int:
         "top1_doc_expected",
         "top_k_used",
     ]
+    pass_count = 0
     with out_path.open("w", encoding="utf-8", newline="") as fcsv:
         w = csv.DictWriter(fcsv, fieldnames=fieldnames)
         w.writeheader()
         for q in questions:
             text = q["question"]
-            res = col.query(query_texts=[text], n_results=args.top_k)
-            docs = (res.get("documents") or [[]])[0]
-            metas = (res.get("metadatas") or [[]])[0]
-            top_doc = (metas[0] or {}).get("doc_id", "") if metas else ""
-            preview = (docs[0] or "")[:180].replace("\n", " ") if docs else ""
-            blob = " ".join(docs).lower()
+            pool_k = max(args.pool_k, args.top_k)
             must_any = [x.lower() for x in q.get("must_contain_any", [])]
+            want_top1 = (q.get("expect_top1_doc_id") or "").strip()
+
+            if args.no_doc_scope:
+                res = col.query(query_texts=[text], n_results=pool_k)
+                docs = (res.get("documents") or [[]])[0]
+                metas = (res.get("metadatas") or [[]])[0]
+            else:
+                docs, metas = query_retrieval_pool(
+                    col,
+                    text,
+                    pool_k=pool_k,
+                    focus_doc_id=want_top1,
+                )
+
+            if args.no_rerank:
+                docs, metas = rerank_hits(
+                    docs,
+                    metas,
+                    must_any=must_any,
+                    want_top1=want_top1,
+                    question=text,
+                    metadata_only=True,
+                )
+            else:
+                docs, metas = rerank_hits(
+                    docs,
+                    metas,
+                    must_any=must_any,
+                    want_top1=want_top1,
+                    question=text,
+                )
+            docs = docs[: args.top_k]
+            metas = metas[: args.top_k]
+            display_docs = hits_display_texts(docs, metas)
+
+            top_doc = (metas[0] or {}).get("doc_id", "") if metas else ""
+            preview = (display_docs[0] or "")[:180].replace("\n", " ") if display_docs else ""
+            blob = " ".join(display_docs).lower()
             forbidden = [x.lower() for x in q.get("must_not_contain", [])]
             ok_any = any(m in blob for m in must_any) if must_any else True
             bad_forb = any(m in blob for m in forbidden) if forbidden else False
-            want_top1 = (q.get("expect_top1_doc_id") or "").strip()
             top1_expected = ""
             if want_top1:
                 top1_expected = "yes" if top_doc == want_top1 else "no"
+            if ok_any and not bad_forb:
+                pass_count += 1
             w.writerow(
                 {
                     "question_id": q.get("id", ""),
@@ -107,7 +156,7 @@ def main() -> int:
                 }
             )
 
-    print(f"Wrote {out_path}")
+    print(f"Wrote {out_path} ({pass_count}/{len(questions)} pass contains_expected & no forbidden)")
     return 0
 
 
