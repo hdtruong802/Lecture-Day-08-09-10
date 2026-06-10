@@ -1,0 +1,57 @@
+{
+  "run_id": "lab-phase123",
+  "run_timestamp": "2026-06-10T05:46:15.894553+00:00",
+  "ingest_started_at": "2026-06-10T05:45:55.072067+00:00",
+  "ingest_latest_exported_at": "2026-04-11T00:00:00",
+  "publish_timestamp": "2026-06-10T05:46:15.894553+00:00",
+  "raw_path": "data\\raw\\policy_export_dirty.csv",
+  "raw_records": 247,
+  "cleaned_records": 49,
+  "quarantine_records": 210,
+  "quarantine_reason_counts": {
+    "unknown_doc_id": 109,
+    "stale_hr_content_10d_annual": 8,
+    "duplicate_chunk_text": 57,
+    "missing_chunk_text": 8,
+    "stale_hr_policy_effective_date": 22,
+    "missing_effective_date": 6
+  },
+  "latest_exported_at": "2026-04-11T00:00:00",
+  "freshness_data_sla_hours": 720.0,
+  "freshness_pipeline_sla_hours": 2.0,
+  "pydantic_validate": {
+    "rows": 49,
+    "errors": 0
+  },
+  "freshness_boundaries": {
+    "data_ingest": {
+      "status": "FAIL",
+      "boundary": "data_ingest",
+      "timestamp": "2026-04-11T00:00:00",
+      "age_hours": 1445.771,
+      "sla_hours": 720.0,
+      "reason": "freshness_sla_exceeded"
+    },
+    "data_publish": {
+      "status": "FAIL",
+      "boundary": "data_publish",
+      "timestamp": "2026-04-11T00:00:00",
+      "age_hours": 1445.771,
+      "sla_hours": 720.0,
+      "reason": "freshness_sla_exceeded"
+    },
+    "pipeline_latency": {
+      "status": "PASS",
+      "boundary": "pipeline_latency",
+      "ingest_started_at": "2026-06-10T05:45:55.072067+00:00",
+      "publish_timestamp": "2026-06-10T05:46:15.894553+00:00",
+      "latency_hours": 0.0058,
+      "sla_hours": 2.0
+    }
+  },
+  "no_refund_fix": false,
+  "skipped_validate": false,
+  "cleaned_csv": "artifacts\\cleaned\\cleaned_lab-phase123.csv",
+  "chroma_path": "./chroma_db",
+  "chroma_collection": "day10_kb"
+}

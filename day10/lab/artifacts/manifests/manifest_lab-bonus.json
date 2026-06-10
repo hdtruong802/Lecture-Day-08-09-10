@@ -1,0 +1,39 @@
+{
+  "run_id": "lab-bonus",
+  "run_timestamp": "2026-06-10T05:32:54.949527+00:00",
+  "ingest_started_at": "2026-06-10T05:32:38.310245+00:00",
+  "ingest_latest_exported_at": "2026-04-11T00:00:00",
+  "publish_timestamp": "2026-06-10T05:32:54.949527+00:00",
+  "raw_path": "data\\raw\\policy_export_dirty.csv",
+  "raw_records": 247,
+  "cleaned_records": 38,
+  "quarantine_records": 209,
+  "latest_exported_at": "2026-04-11T00:00:00",
+  "pydantic_validate": {
+    "rows": 38,
+    "errors": 0
+  },
+  "freshness_boundaries": {
+    "ingest": {
+      "status": "FAIL",
+      "boundary": "ingest",
+      "timestamp": "2026-04-11T00:00:00",
+      "age_hours": 1445.549,
+      "sla_hours": 720.0,
+      "reason": "freshness_sla_exceeded"
+    },
+    "publish": {
+      "status": "FAIL",
+      "boundary": "publish",
+      "timestamp": "2026-04-11T00:00:00",
+      "age_hours": 1445.549,
+      "sla_hours": 720.0,
+      "reason": "freshness_sla_exceeded"
+    }
+  },
+  "no_refund_fix": false,
+  "skipped_validate": false,
+  "cleaned_csv": "artifacts\\cleaned\\cleaned_lab-bonus.csv",
+  "chroma_path": "./chroma_db",
+  "chroma_collection": "day10_kb"
+}

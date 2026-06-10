@@ -85,6 +85,25 @@ def check_grading_jsonl(path: Path) -> Tuple[int, List[str]]:
     return (1 if fails or merit_fail else 0), msgs
 
 
+def check_eval_csv(path: Path, *, expected_pass: int = 21) -> Tuple[int, List[str]]:
+    msgs: List[str] = []
+    if not path.is_file():
+        return 1, [f"MISSING eval CSV: {path}"]
+    import csv
+
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    pass_n = sum(
+        1
+        for r in rows
+        if r.get("contains_expected") == "yes" and r.get("hits_forbidden") == "no"
+    )
+    msgs.append(f"EVAL_CHECK pass={pass_n}/{len(rows)}")
+    if pass_n < expected_pass:
+        msgs.append(f"FAIL: eval pass {pass_n} < {expected_pass}")
+        return 1, msgs
+    return 0, msgs
+
+
 def check_manifest(path: Path) -> Tuple[int, List[str]]:
     msgs: List[str] = []
     if not path.is_file():
@@ -95,6 +114,13 @@ def check_manifest(path: Path) -> Tuple[int, List[str]]:
             msgs.append(f"FAIL: manifest missing {k}")
     if msgs:
         return 1, msgs
+    fb = data.get("freshness_boundaries") or {}
+    for key in ("data_ingest", "data_publish", "pipeline_latency"):
+        st = (fb.get(key) or {}).get("status")
+        if st and st != "PASS":
+            msgs.append(f"WARN: freshness_boundaries[{key}]={st}")
+    if data.get("freshness_align", {}).get("aligned"):
+        msgs.append("OK freshness_align applied (snapshot nguồn đã căn)")
     msgs.append(
         f"OK manifest run_id={data.get('run_id')} "
         f"raw={data.get('raw_records')} clean={data.get('cleaned_records')} "
@@ -112,6 +138,7 @@ def main() -> int:
         help="Đường dẫn grading_run.jsonl",
     )
     p.add_argument("--manifest", default="", help="Tuỳ chọn: manifest.json để sanity check")
+    p.add_argument("--eval-csv", default="", help="Tuỳ chọn: after_fix_eval.csv")
     args = p.parse_args()
 
     code, msgs = check_grading_jsonl(Path(args.grading))
@@ -122,6 +149,12 @@ def main() -> int:
         c2, m2 = check_manifest(Path(args.manifest))
         code = max(code, c2)
         for m in m2:
+            print(m)
+
+    if args.eval_csv:
+        c3, m3 = check_eval_csv(Path(args.eval_csv))
+        code = max(code, c3)
+        for m in m3:
             print(m)
 
     return code

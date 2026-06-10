@@ -112,5 +112,66 @@ def run_expectations(cleaned_rows: List[Dict[str, Any]]) -> Tuple[List[Expectati
         )
     )
 
+    # E7 (mới): access_control_sop phải có ít nhất 1 chunk sau clean
+    access_chunks = [r for r in cleaned_rows if r.get("doc_id") == "access_control_sop"]
+    ok7 = len(access_chunks) >= 1
+    results.append(
+        ExpectationResult(
+            "access_control_sop_min_one_chunk",
+            ok7,
+            "halt",
+            f"access_control_chunks={len(access_chunks)}",
+        )
+    )
+
+    # E8 (mới): HR phải còn chunk 12 ngày phép năm (bản 2026)
+    hr_12d = [
+        r
+        for r in cleaned_rows
+        if r.get("doc_id") == "hr_leave_policy"
+        and "12 ngày phép năm" in (r.get("chunk_text") or "")
+    ]
+    ok8 = len(hr_12d) >= 1
+    results.append(
+        ExpectationResult(
+            "hr_leave_has_12d_annual",
+            ok8,
+            "halt",
+            f"hr_12d_chunks={len(hr_12d)}",
+        )
+    )
+
+    # E9 (mới): không còn prefix migration trong cleaned text
+    unclear = [
+        r
+        for r in cleaned_rows
+        if (r.get("chunk_text") or "").startswith("Nội dung không rõ ràng: ")
+    ]
+    ok9 = len(unclear) == 0
+    results.append(
+        ExpectationResult(
+            "no_unclear_content_prefix",
+            ok9,
+            "warn",
+            f"unclear_prefix_chunks={len(unclear)}",
+        )
+    )
+
+    # E10: không còn marker corruption !!! trong cleaned
+    corrupt = [
+        r
+        for r in cleaned_rows
+        if re.match(r"^!{2,}", (r.get("chunk_text") or "").strip())
+    ]
+    ok10 = len(corrupt) == 0
+    results.append(
+        ExpectationResult(
+            "no_corruption_markers",
+            ok10,
+            "warn",
+            f"corruption_marker_chunks={len(corrupt)}",
+        )
+    )
+
     halt = any(not r.passed and r.severity == "halt" for r in results)
     return results, halt

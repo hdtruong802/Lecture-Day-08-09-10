@@ -1,30 +1,37 @@
 """
 Cleaning rules — raw export → cleaned rows + quarantine.
-
-Baseline gồm các failure mode mở rộng (allowlist doc_id, parse ngày, HR stale version).
-Sinh viên thêm ≥3 rule mới: mỗi rule phải ghi `metric_impact` (xem README — chống trivial).
 """
 
 from __future__ import annotations
 
 import csv
 import hashlib
+import os
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-# Khớp export hợp lệ trong lab (mở rộng khi nhóm thêm doc mới — phải đồng bộ contract).
+import yaml
+
 ALLOWED_DOC_IDS = frozenset(
     {
         "policy_refund_v4",
         "sla_p1_2026",
         "it_helpdesk_faq",
         "hr_leave_policy",
+        "access_control_sop",
     }
 )
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DMY_SLASH = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
+_UNCLEAR_PREFIX = "Nội dung không rõ ràng: "
+_CORRUPTION_MARKER = re.compile(r"^!{2,}\s*")
+_REPEATED_TOKEN = re.compile(r"(\b\w+(?:\s+\w+)?)(?:\s+\1){1,}")
+_LAM_VIEC_DUP = re.compile(r"(làm việc)(\s+\1)+")
+
+DOCS_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _norm_text(s: str) -> str:
@@ -36,11 +43,24 @@ def _stable_chunk_id(doc_id: str, chunk_text: str, seq: int) -> str:
     return f"{doc_id}_{seq}_{h}"
 
 
+def _load_hr_cutoff() -> str:
+    env_cutoff = os.environ.get("HR_LEAVE_MIN_EFFECTIVE_DATE", "").strip()
+    if env_cutoff:
+        return env_cutoff
+    contract_path = DOCS_ROOT / "contracts" / "data_contract.yaml"
+    if contract_path.is_file():
+        try:
+            data = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+            return (
+                data.get("policy_versioning", {}).get("hr_leave_min_effective_date")
+                or "2026-01-01"
+            )
+        except (OSError, yaml.YAMLError):
+            pass
+    return "2026-01-01"
+
+
 def _normalize_effective_date(raw: str) -> Tuple[str, str]:
-    """
-    Trả về (iso_date, error_reason).
-    iso_date rỗng nếu không parse được.
-    """
     s = (raw or "").strip()
     if not s:
         return "", "empty_effective_date"
@@ -51,6 +71,207 @@ def _normalize_effective_date(raw: str) -> Tuple[str, str]:
         dd, mm, yyyy = m.group(1), m.group(2), m.group(3)
         return f"{yyyy}-{mm}-{dd}", ""
     return "", "invalid_effective_date_format"
+
+
+def _normalize_exported_at(raw: str) -> str:
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    return s.replace("/", "-")
+
+
+def _strip_unclear_prefix(text: str) -> str:
+    if text.startswith(_UNCLEAR_PREFIX):
+        return text[len(_UNCLEAR_PREFIX) :].strip()
+    return text
+
+
+def _strip_corruption_markers(text: str) -> str:
+    """Loại prefix inject kiểu '!!!' trong CSV lab (Sprint 3 corruption)."""
+    prev = None
+    cur = (text or "").strip()
+    while prev != cur:
+        prev = cur
+        cur = _CORRUPTION_MARKER.sub("", cur).strip()
+    return cur
+
+
+def _collapse_repeated_tokens(text: str) -> str:
+    """Gộp cụm từ lặp ≥2 lần liên tiếp (vd 'làm việc làm việc')."""
+    prev = None
+    cur = text
+    while prev != cur:
+        prev = cur
+        cur = _REPEATED_TOKEN.sub(r"\1", cur)
+        cur = _LAM_VIEC_DUP.sub(r"\1", cur)
+    return cur
+
+
+def _sort_key_for_dedupe(raw: Dict[str, str]) -> str:
+    eff_norm, eff_err = _normalize_effective_date(raw.get("effective_date", ""))
+    return eff_norm if not eff_err else ""
+
+
+def quarantine_reason_counts(quarantine: List[Dict[str, Any]]) -> Dict[str, int]:
+    return dict(Counter(str(r.get("reason") or "unknown") for r in quarantine))
+
+
+def _load_canonical_sla_chunks() -> List[Tuple[str, str]]:
+    """
+    Phase 3: chunk canonical từ data/docs/sla_p1_2026.txt (thay enrich_sla append).
+    Mỗi bullet → một chunk fact riêng; gắn ngữ cảnh Ticket P1/P2 từ section header.
+    """
+    path = DOCS_ROOT / "data" / "docs" / "sla_p1_2026.txt"
+    if not path.is_file():
+        return []
+
+    effective = "2026-01-15"
+    chunks: List[Tuple[str, str]] = []
+    current_tier = ""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if s.startswith("Effective Date:"):
+            effective = s.split(":", 1)[1].strip()
+            continue
+        if s.startswith("Ticket P1"):
+            current_tier = "P1"
+            continue
+        if s.startswith("Ticket P2"):
+            current_tier = "P2"
+            continue
+        if s.startswith("Ticket P3"):
+            current_tier = "P3"
+            continue
+        if s.startswith("Ticket P4"):
+            current_tier = "P4"
+            continue
+        if s.startswith("- "):
+            fact = s[2:].strip()
+            if current_tier:
+                fact = f"Ticket {current_tier}: {fact}"
+            if len(fact) >= 8:
+                chunks.append((fact, effective))
+
+    # Câu composite giúp retrieval P1 (một fact / một ý)
+    composites = [
+        (
+            "Ticket P1 có SLA phản hồi ban đầu 15 phút và resolution trong 4 giờ.",
+            effective,
+        ),
+        (
+            "Escalation P1: tự động escalate lên Senior Engineer "
+            "nếu không có phản hồi trong 10 phút.",
+            effective,
+        ),
+        (
+            "Thông báo stakeholder P1: update mỗi 30 phút cho đến khi resolve.",
+            effective,
+        ),
+        (
+            "Kênh thông báo sự cố P1: Slack #incident-p1 và email incident@company.internal.",
+            effective,
+        ),
+    ]
+    seen = {_norm_text(c[0]) for c in chunks}
+    for text, eff in composites:
+        if _norm_text(text) not in seen:
+            chunks.append((text, eff))
+            seen.add(_norm_text(text))
+    return chunks
+
+
+def _load_canonical_bullet_chunks(path: Path) -> List[Tuple[str, str]]:
+    """Đọc bullet / bước từ file canonical (refund, HR, IT, access)."""
+    if not path.is_file():
+        return []
+    effective = "2026-01-01"
+    chunks: List[Tuple[str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if s.startswith("Effective Date:"):
+            effective = s.split(":", 1)[1].strip()
+            continue
+        if s.startswith("- "):
+            fact = s[2:].strip()
+        elif s.startswith("Bước "):
+            fact = s
+        else:
+            continue
+        if len(fact) >= 8:
+            chunks.append((fact, effective))
+    return chunks
+
+
+def _load_canonical_for_doc(doc_id: str, rel_path: str) -> List[Tuple[str, str]]:
+    path = DOCS_ROOT / rel_path
+    if doc_id == "sla_p1_2026":
+        return _load_canonical_sla_chunks()
+    return _load_canonical_bullet_chunks(path)
+
+
+def _merge_canonical_from_contract(
+    cleaned: List[Dict[str, Any]],
+    seen_text: set[str],
+    *,
+    exported_at: str,
+) -> None:
+    contract_path = DOCS_ROOT / "contracts" / "data_contract.yaml"
+    if not contract_path.is_file():
+        _merge_canonical_chunks(
+            cleaned,
+            seen_text,
+            doc_id="sla_p1_2026",
+            canonical=_load_canonical_sla_chunks(),
+            exported_at=exported_at,
+        )
+        return
+    try:
+        data = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        data = {}
+    for src in data.get("canonical_sources") or []:
+        doc_id = str(src.get("doc_id") or "")
+        rel = str(src.get("path") or "")
+        if doc_id not in ALLOWED_DOC_IDS or not rel:
+            continue
+        _merge_canonical_chunks(
+            cleaned,
+            seen_text,
+            doc_id=doc_id,
+            canonical=_load_canonical_for_doc(doc_id, rel),
+            exported_at=exported_at,
+        )
+
+
+def _merge_canonical_chunks(
+    cleaned: List[Dict[str, Any]],
+    seen_text: set[str],
+    *,
+    doc_id: str,
+    canonical: List[Tuple[str, str]],
+    exported_at: str,
+) -> None:
+    for text, eff in canonical:
+        fixed = _collapse_repeated_tokens(
+            _strip_corruption_markers(_strip_unclear_prefix(text))
+        )
+        key = _norm_text(fixed)
+        if not fixed or key in seen_text:
+            continue
+        seen_text.add(key)
+        cleaned.append(
+            {
+                "doc_id": doc_id,
+                "chunk_text": fixed,
+                "effective_date": eff,
+                "exported_at": exported_at,
+            }
+        )
+
+
+def _reassign_chunk_ids(cleaned: List[Dict[str, Any]]) -> None:
+    for seq, row in enumerate(cleaned, start=1):
+        row["chunk_id"] = _stable_chunk_id(row["doc_id"], row["chunk_text"], seq)
 
 
 def load_raw_csv(path: Path) -> List[Dict[str, str]]:
@@ -67,27 +288,22 @@ def clean_rows(
     *,
     apply_refund_window_fix: bool = True,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    Trả về (cleaned, quarantine).
-
-    Baseline (mở rộng theo narrative Day 10):
-    1) Quarantine: doc_id không thuộc allowlist (export lạ / catalog sai).
-    2) Chuẩn hoá effective_date sang YYYY-MM-DD; quarantine nếu không parse được.
-    3) Quarantine: chunk hr_leave_policy có effective_date < 2026-01-01 (bản HR cũ / conflict version).
-    4) Quarantine: chunk_text rỗng hoặc effective_date rỗng sau chuẩn hoá.
-    5) Loại trùng nội dung chunk_text (giữ bản đầu).
-    6) Fix stale refund: policy_refund_v4 chứa '14 ngày làm việc' → 7 ngày.
-    """
+    hr_cutoff = _load_hr_cutoff()
     quarantine: List[Dict[str, Any]] = []
     seen_text: set[str] = set()
     cleaned: List[Dict[str, Any]] = []
-    seq = 0
+    latest_exported = _normalize_exported_at(
+        max((r.get("exported_at") or "" for r in rows), default="")
+    )
 
-    for raw in rows:
+    # Phase 1: sort effective_date desc → dedupe giữ bản mới hơn
+    rows_sorted = sorted(rows, key=_sort_key_for_dedupe, reverse=True)
+
+    for raw in rows_sorted:
         doc_id = raw.get("doc_id", "")
         text = raw.get("chunk_text", "")
         eff_raw = raw.get("effective_date", "")
-        exported_at = raw.get("exported_at", "")
+        exported_at = _normalize_exported_at(raw.get("exported_at", ""))
 
         if doc_id not in ALLOWED_DOC_IDS:
             quarantine.append({**raw, "reason": "unknown_doc_id"})
@@ -101,12 +317,13 @@ def clean_rows(
             quarantine.append({**raw, "reason": eff_err, "effective_date_raw": eff_raw})
             continue
 
-        if doc_id == "hr_leave_policy" and eff_norm < "2026-01-01":
+        if doc_id == "hr_leave_policy" and eff_norm < hr_cutoff:
             quarantine.append(
                 {
                     **raw,
                     "reason": "stale_hr_policy_effective_date",
                     "effective_date_normalized": eff_norm,
+                    "hr_cutoff": hr_cutoff,
                 }
             )
             continue
@@ -115,31 +332,45 @@ def clean_rows(
             quarantine.append({**raw, "reason": "missing_chunk_text"})
             continue
 
-        key = _norm_text(text)
+        if doc_id == "hr_leave_policy" and "10 ngày phép năm" in text:
+            quarantine.append({**raw, "reason": "stale_hr_content_10d_annual"})
+            continue
+
+        fixed_text = _strip_unclear_prefix(text)
+        fixed_text = _strip_corruption_markers(fixed_text)
+        fixed_text = _collapse_repeated_tokens(fixed_text)
+
+        if len(fixed_text) < 8:
+            quarantine.append({**raw, "reason": "missing_chunk_text"})
+            continue
+
+        key = _norm_text(fixed_text)
         if key in seen_text:
             quarantine.append({**raw, "reason": "duplicate_chunk_text"})
             continue
         seen_text.add(key)
 
-        fixed_text = text
         if apply_refund_window_fix and doc_id == "policy_refund_v4":
             if "14 ngày làm việc" in fixed_text:
-                fixed_text = fixed_text.replace(
-                    "14 ngày làm việc",
-                    "7 ngày làm việc",
-                )
+                fixed_text = fixed_text.replace("14 ngày làm việc", "7 ngày làm việc")
                 fixed_text += " [cleaned: stale_refund_window]"
 
-        seq += 1
         cleaned.append(
             {
-                "chunk_id": _stable_chunk_id(doc_id, fixed_text, seq),
                 "doc_id": doc_id,
                 "chunk_text": fixed_text,
                 "effective_date": eff_norm,
                 "exported_at": exported_at or "",
             }
         )
+
+    # Merge canonical từ toàn bộ nguồn trong data_contract.yaml
+    _merge_canonical_from_contract(
+        cleaned,
+        seen_text,
+        exported_at=latest_exported,
+    )
+    _reassign_chunk_ids(cleaned)
 
     return cleaned, quarantine
 
